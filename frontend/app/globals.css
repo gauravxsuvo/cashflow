@@ -5,15 +5,56 @@
    next-themes adds `.dark` to <html>, so all descendants match `.dark *`. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ========================================================================
+   NEO-BRUTALISM DESIGN TOKENS
+   Thick ink borders + hard (un-blurred) offset shadows + bold saturated
+   accents. All theme-aware: in dark mode the "ink" flips to near-white so
+   borders and shadows stay high-contrast against the dark surface.
+   ======================================================================== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fdf6ec;          /* warm paper */
+  --foreground: #0a0a0a;
+
+  --nb-ink: #0a0a0a;              /* borders + hard shadows */
+  --nb-surface: #ffffff;         /* card / control surface */
+  --nb-surface-2: #f4ede0;       /* recessed surface */
+  --nb-muted: #57534e;           /* secondary text */
+  --nb-dot: rgba(10, 10, 10, 0.06);
+
+  --nb-radius: 14px;
+  --nb-radius-sm: 9px;
+
+  --nb-shadow-sm: 2px 2px 0 0 var(--nb-ink);
+  --nb-shadow: 4px 4px 0 0 var(--nb-ink);
+  --nb-shadow-lg: 7px 7px 0 0 var(--nb-ink);
+
+  /* Brand + category accents (bright, flat) */
+  --nb-primary: #7c3aed;
+  --nb-violet: #c4b5fd;
+  --nb-cyan: #67e8f9;
+  --nb-lime: #bef264;
+  --nb-amber: #fcd34d;
+  --nb-pink: #f9a8d4;
+  --nb-zinc: #d4d4d8;
 }
 
-/* Controlled by next-themes via the .dark class, not the media query */
 .dark {
-  --background: #09090b;
-  --foreground: #fafafa;
+  --background: #0c0a09;
+  --foreground: #fafaf9;
+
+  --nb-ink: #fafaf9;
+  --nb-surface: #1c1917;
+  --nb-surface-2: #292524;
+  --nb-muted: #a8a29e;
+  --nb-dot: rgba(250, 250, 249, 0.06);
+
+  --nb-primary: #8b5cf6;
+  --nb-violet: #7c3aed;
+  --nb-cyan: #0891b2;
+  --nb-lime: #4d7c0f;
+  --nb-amber: #b45309;
+  --nb-pink: #be185d;
+  --nb-zinc: #44403c;
 }
 
 @theme inline {
@@ -24,7 +65,126 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image: radial-gradient(var(--nb-dot) 1.25px, transparent 1.25px);
+  background-size: 22px 22px;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ========================================================================
+   COMPONENT PRIMITIVES
+   ======================================================================== */
+@layer components {
+  .nb-card {
+    background: var(--nb-surface);
+    border: 3px solid var(--nb-ink);
+    border-radius: var(--nb-radius);
+    box-shadow: var(--nb-shadow);
+  }
+
+  .nb-card-flat {
+    background: var(--nb-surface);
+    border: 3px solid var(--nb-ink);
+    border-radius: var(--nb-radius);
+  }
+
+  /* Buttons: rest on a small shadow, lift on hover, press flat on click. */
+  .nb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 2.5px solid var(--nb-ink);
+    border-radius: var(--nb-radius-sm);
+    background: var(--nb-surface);
+    color: var(--foreground);
+    font-weight: 700;
+    box-shadow: var(--nb-shadow-sm);
+    cursor: pointer;
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.12s ease;
+    user-select: none;
+  }
+  .nb-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--nb-shadow);
+  }
+  .nb-btn:active {
+    transform: translate(0, 0);
+    box-shadow: 1px 1px 0 0 var(--nb-ink);
+  }
+  .nb-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: var(--nb-shadow-sm);
+  }
+  .nb-btn-primary {
+    background: var(--nb-primary);
+    color: #ffffff;
+  }
+  .nb-btn-danger {
+    background: #ef4444;
+    color: #ffffff;
+  }
+
+  /* Square icon button */
+  .nb-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2.5px solid var(--nb-ink);
+    border-radius: var(--nb-radius-sm);
+    background: var(--nb-surface);
+    color: var(--foreground);
+    box-shadow: var(--nb-shadow-sm);
+    cursor: pointer;
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.12s ease;
+  }
+  .nb-icon-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--nb-shadow);
+  }
+  .nb-icon-btn:active {
+    transform: translate(0, 0);
+    box-shadow: 1px 1px 0 0 var(--nb-ink);
+  }
+
+  .nb-input {
+    width: 100%;
+    border: 2.5px solid var(--nb-ink);
+    border-radius: var(--nb-radius-sm);
+    background: var(--nb-surface);
+    color: var(--foreground);
+    padding: 0.5rem 0.75rem;
+    outline: none;
+    transition: box-shadow 0.08s ease, transform 0.08s ease;
+  }
+  .nb-input::placeholder {
+    color: var(--nb-muted);
+    opacity: 0.7;
+  }
+  .nb-input:focus {
+    box-shadow: var(--nb-shadow-sm);
+    transform: translate(-1px, -1px);
+  }
+
+  .nb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 2px solid var(--nb-ink);
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    font-weight: 700;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    color: #0a0a0a; /* badges sit on bright fills → always dark text */
+  }
+}
+
+/* Recharts legend/active outlines off — we style our own */
+.recharts-surface:focus,
+.recharts-wrapper:focus {
+  outline: none;
 }

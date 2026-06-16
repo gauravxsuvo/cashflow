@@ -1,36 +1,42 @@
 "use client";
 
-import { DollarSign, LayoutGrid, ListOrdered, TrendingDown } from "lucide-react";
+import { ArrowRightLeft, Crown, Receipt, Wallet } from "lucide-react";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { categoryColor } from "@/lib/categoryColors";
 import { useSettings } from "@/context/SettingsContext";
 
 interface SummaryCardProps {
   totalTransactions: number;
   totalSpent: number;
   avgTransaction: number;
-  categoryCount: number;
+  topCategory: { name: string; total: number } | null;
 }
 
 interface StatCardProps {
   icon: React.ReactNode;
-  iconBg: string;
+  accent: string;
   label: string;
   value: string;
+  sub?: string;
 }
 
-function StatCard({ icon, iconBg, label, value }: StatCardProps) {
+function StatCard({ icon, accent, label, value, sub }: StatCardProps) {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="nb-card flex items-center gap-4 p-4 sm:p-5">
       <div
-        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border-[2.5px] border-[var(--nb-ink)] text-black"
+        style={{ backgroundColor: accent }}
       >
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">{label}</p>
-        <p className="truncate text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+        <p className="truncate text-[0.7rem] font-bold uppercase tracking-wider text-[var(--nb-muted)]">
+          {label}
+        </p>
+        <p className="truncate text-2xl font-extrabold tabular-nums text-[var(--foreground)]">
           {value}
         </p>
+        {sub && <p className="truncate text-xs font-semibold text-[var(--nb-muted)]">{sub}</p>}
       </div>
     </div>
   );
@@ -40,36 +46,36 @@ export default function SummaryCard({
   totalTransactions,
   totalSpent,
   avgTransaction,
-  categoryCount,
+  topCategory,
 }: SummaryCardProps) {
   const { currency } = useSettings();
 
   return (
-    // 1-col mobile → 2-col tablet → 4-col desktop
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
-        iconBg="bg-violet-100 dark:bg-violet-950"
-        icon={<ListOrdered className="h-5 w-5 text-violet-600 dark:text-violet-400" />}
-        label="Total Transactions"
-        value={totalTransactions.toString()}
-      />
-      <StatCard
-        iconBg="bg-emerald-100 dark:bg-emerald-950"
-        icon={<DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+        accent="#bef264"
+        icon={<Wallet className="h-6 w-6" />}
         label="Total Spent"
         value={formatCurrency(totalSpent, currency)}
       />
       <StatCard
-        iconBg="bg-sky-100 dark:bg-sky-950"
-        icon={<TrendingDown className="h-5 w-5 text-sky-600 dark:text-sky-400" />}
+        accent="#67e8f9"
+        icon={<Receipt className="h-6 w-6" />}
+        label="Transactions"
+        value={totalTransactions.toString()}
+      />
+      <StatCard
+        accent="#fcd34d"
+        icon={<ArrowRightLeft className="h-6 w-6" />}
         label="Avg. Transaction"
         value={totalTransactions > 0 ? formatCurrency(avgTransaction, currency) : "—"}
       />
       <StatCard
-        iconBg="bg-amber-100 dark:bg-amber-950"
-        icon={<LayoutGrid className="h-5 w-5 text-amber-600 dark:text-amber-400" />}
-        label="Clusters"
-        value={categoryCount.toString()}
+        accent={topCategory ? categoryColor(topCategory.name) : "#d4d4d8"}
+        icon={<Crown className="h-6 w-6" />}
+        label="Top Category"
+        value={topCategory ? topCategory.name : "—"}
+        sub={topCategory ? formatCurrency(topCategory.total, currency) : undefined}
       />
     </div>
   );
