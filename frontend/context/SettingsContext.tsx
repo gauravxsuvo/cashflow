@@ -17,6 +17,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   // Read persisted preference after mount (avoids SSR mismatch)
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
+    // Hydrating preference from localStorage (a client-only external store)
+    // after mount, by design — avoids an SSR mismatch on first paint.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved) setCurrencyState(saved);
   }, []);
 
