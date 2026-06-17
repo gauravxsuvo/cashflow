@@ -13,9 +13,9 @@ you correct any category by hand — without ever retraining or biasing the mode
 ## Features
 
 **Dashboard & insights**
-- Summary stat cards — total spent, transaction count, average, and top category
+- Summary stat cards : total spent, transaction count, average, and top category
 - Interactive **donut chart** of spending by category (click a slice/legend to filter the table)
-- **Spending-over-time** bar chart aggregated by month
+- **Spending over time** bar chart aggregated by month
 - Light / dark mode and a multi-currency display toggle (USD, EUR, GBP, INR, JPY)
 
 **Transactions**
