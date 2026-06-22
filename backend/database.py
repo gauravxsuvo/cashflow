@@ -6,9 +6,7 @@ from pathlib import Path
 
 DB_PATH = Path(__file__).parent / "finance.db"
 
-# Columns that must never be set to NULL via a PATCH
 _NON_NULLABLE = {"date", "vendor", "amount"}
-# Columns that may be explicitly set to NULL (clearing a user override)
 _NULLABLE = {"manual_category"}
 
 # Date input formats we accept and normalise to ISO. ISO is tried first; the
