@@ -4,19 +4,18 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
+from default_categories import UNCATEGORIZED, default_categories
+
 DB_PATH = Path(__file__).parent / "finance.db"
 
 # Fields that must never be set to NULL by a partial update.
 _NON_NULLABLE = {"date", "vendor", "amount", "type"}
 # Fields where an explicit None is meaningful (clears the value).
-_NULLABLE = {"manual_category", "account", "note"}
+_NULLABLE = {"account", "note"}
 
 VALID_TYPES = ("expense", "income")
+VALID_KINDS = ("expense", "income")
 
-# Date input formats we accept and normalise to ISO. ISO is tried first; the
-# US "M/D/YYYY" form (with or without leading zeros — strptime is lenient)
-# covers the noisy bank-export style. Storing everything as ISO means the
-# plain `ORDER BY date` is chronologically correct.
 _DATE_FORMATS = ("%Y-%m-%d", "%m/%d/%Y", "%Y/%m/%d", "%m-%d-%Y", "%b %d, %Y")
 
 
@@ -40,9 +39,13 @@ def normalize_date(value: str | None) -> str | None:
 
 
 def _normalize_type(value: str | None) -> str:
-    """Coerce a type string to one of VALID_TYPES; default to 'expense'."""
     v = (value or "").strip().lower()
     return v if v in VALID_TYPES else "expense"
+
+
+def _clean_category(value: str | None) -> str:
+    v = (value or "").strip()
+    return v or UNCATEGORIZED
 
 
 @contextmanager
@@ -81,29 +84,53 @@ def init_db() -> None:
                 vendor          TEXT,
                 amount          REAL,
                 type            TEXT NOT NULL DEFAULT 'expense',
+                category        TEXT NOT NULL DEFAULT 'Uncategorized',
                 account         TEXT,
                 note            TEXT,
-                manual_category TEXT,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
             """
         )
-        # Additive migrations for databases created before these columns existed.
+        # Additive migrations for older databases.
         for ddl in (
-            "ALTER TABLE transactions ADD COLUMN manual_category TEXT",
             "ALTER TABLE transactions ADD COLUMN type TEXT NOT NULL DEFAULT 'expense'",
             "ALTER TABLE transactions ADD COLUMN account TEXT",
             "ALTER TABLE transactions ADD COLUMN note TEXT",
             "ALTER TABLE transactions ADD COLUMN user_id TEXT",
+            "ALTER TABLE transactions ADD COLUMN manual_category TEXT",
+            "ALTER TABLE transactions ADD COLUMN category TEXT NOT NULL DEFAULT 'Uncategorized'",
         ):
             try:
                 conn.execute(ddl)
             except sqlite3.OperationalError:
                 pass  # column already exists
 
+        # Carry any previous manual_category into the new category column.
+        try:
+            conn.execute(
+                "UPDATE transactions SET category = manual_category "
+                "WHERE (category IS NULL OR category = 'Uncategorized') "
+                "AND manual_category IS NOT NULL AND manual_category != ''"
+            )
+        except sqlite3.OperationalError:
+            pass
+
         conn.execute("CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, date)")
 
-        # Per-category monthly budget limits (expense categories only), per user.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS categories (
+                user_id    TEXT NOT NULL,
+                name       TEXT NOT NULL,
+                kind       TEXT NOT NULL,
+                color      TEXT NOT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (user_id, name),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS budgets (
@@ -120,7 +147,6 @@ def init_db() -> None:
 
 
 def _migrate_normalize_dates() -> None:
-    """One-time cleanup: rewrite any non-ISO stored dates to ISO so sorting works."""
     with _get_conn() as conn:
         rows = conn.execute("SELECT id, date FROM transactions").fetchall()
         for row in rows:
@@ -139,9 +165,9 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
         "vendor": row["vendor"],
         "amount": row["amount"],
         "type": row["type"] or "expense",
+        "category": row["category"] or UNCATEGORIZED,
         "account": row["account"],
         "note": row["note"],
-        "manual_category": row["manual_category"],
     }
 
 
@@ -158,12 +184,12 @@ def create_user(username: str, password_hash: str, currency: str = "USD") -> dic
             "VALUES (?, ?, ?, ?, ?)",
             (new_id, username, password_hash, currency, created_at),
         )
-    return {
-        "id": new_id,
-        "username": username,
-        "currency": currency,
-        "created_at": created_at,
-    }
+        # Seed the user's default categories.
+        conn.executemany(
+            "INSERT INTO categories (user_id, name, kind, color, sort_order) VALUES (?, ?, ?, ?, ?)",
+            [(new_id, name, kind, color, order) for (name, kind, color, order) in default_categories()],
+        )
+    return {"id": new_id, "username": username, "currency": currency, "created_at": created_at}
 
 
 def get_user_by_username(username: str) -> dict | None:
@@ -196,15 +222,15 @@ def update_user_password(user_id: str, password_hash: str) -> None:
 
 
 def delete_user(user_id: str) -> None:
-    """Delete a user and (via ON DELETE CASCADE) all of their data."""
     with _get_conn() as conn:
         conn.execute("DELETE FROM transactions WHERE user_id = ?", (user_id,))
         conn.execute("DELETE FROM budgets WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM categories WHERE user_id = ?", (user_id,))
         conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
 
 def clear_user_data(user_id: str) -> int:
-    """Delete all transactions and budgets for a user (keeps the account)."""
+    """Delete all transactions and budgets for a user (keeps account + categories)."""
     with _get_conn() as conn:
         cursor = conn.execute("DELETE FROM transactions WHERE user_id = ?", (user_id,))
         conn.execute("DELETE FROM budgets WHERE user_id = ?", (user_id,))
@@ -212,13 +238,124 @@ def clear_user_data(user_id: str) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Transactions (all scoped to a user_id)
+# Categories (per-user)
+# ---------------------------------------------------------------------------
+
+def get_categories(user_id: str) -> list[dict]:
+    with _get_conn() as conn:
+        rows = conn.execute(
+            "SELECT name, kind, color, sort_order FROM categories WHERE user_id = ? "
+            "ORDER BY kind DESC, sort_order ASC, name ASC",
+            (user_id,),
+        ).fetchall()
+    return [{"name": r["name"], "kind": r["kind"], "color": r["color"]} for r in rows]
+
+
+def get_category(user_id: str, name: str) -> dict | None:
+    with _get_conn() as conn:
+        row = conn.execute(
+            "SELECT name, kind, color FROM categories WHERE user_id = ? AND name = ?",
+            (user_id, name),
+        ).fetchone()
+    return {"name": row["name"], "kind": row["kind"], "color": row["color"]} if row else None
+
+
+def ensure_default_categories(user_id: str) -> None:
+    """Make sure a user has categories (self-heals older accounts)."""
+    with _get_conn() as conn:
+        count = conn.execute(
+            "SELECT COUNT(*) AS c FROM categories WHERE user_id = ?", (user_id,)
+        ).fetchone()["c"]
+        if count == 0:
+            conn.executemany(
+                "INSERT INTO categories (user_id, name, kind, color, sort_order) VALUES (?, ?, ?, ?, ?)",
+                [(user_id, name, kind, color, order) for (name, kind, color, order) in default_categories()],
+            )
+
+
+def create_category(user_id: str, name: str, kind: str, color: str) -> dict | None:
+    """Create a category. Returns None if the name already exists for the user."""
+    if get_category(user_id, name) is not None:
+        return None
+    with _get_conn() as conn:
+        order = conn.execute(
+            "SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM categories WHERE user_id = ? AND kind = ?",
+            (user_id, kind),
+        ).fetchone()["n"]
+        conn.execute(
+            "INSERT INTO categories (user_id, name, kind, color, sort_order) VALUES (?, ?, ?, ?, ?)",
+            (user_id, name, kind, color, order),
+        )
+    return {"name": name, "kind": kind, "color": color}
+
+
+def update_category(
+    user_id: str, name: str, new_name: str | None = None, color: str | None = None
+) -> dict | None:
+    """Recolour and/or rename a category; a rename cascades to transactions & budgets.
+
+    Returns the updated category, or None if it doesn't exist. Raises ValueError
+    if the new name collides with an existing category.
+    """
+    existing = get_category(user_id, name)
+    if existing is None:
+        return None
+
+    renaming = bool(new_name) and new_name != name
+    if renaming and get_category(user_id, new_name) is not None:  # type: ignore[arg-type]
+        raise ValueError("A category with that name already exists.")
+
+    final_name = new_name if renaming else name
+    final_color = color if color else existing["color"]
+
+    with _get_conn() as conn:
+        if renaming:
+            conn.execute(
+                "UPDATE categories SET name = ?, color = ? WHERE user_id = ? AND name = ?",
+                (final_name, final_color, user_id, name),
+            )
+            conn.execute(
+                "UPDATE transactions SET category = ? WHERE user_id = ? AND category = ?",
+                (final_name, user_id, name),
+            )
+            conn.execute(
+                "UPDATE budgets SET category = ? WHERE user_id = ? AND category = ?",
+                (final_name, user_id, name),
+            )
+        else:
+            conn.execute(
+                "UPDATE categories SET color = ? WHERE user_id = ? AND name = ?",
+                (final_color, user_id, name),
+            )
+    return {"name": final_name, "kind": existing["kind"], "color": final_color}
+
+
+def delete_category(user_id: str, name: str) -> bool:
+    """Delete a category; its transactions fall back to Uncategorized and its
+    budget is removed. Returns False if it doesn't exist. Uncategorized can't be
+    deleted."""
+    if name == UNCATEGORIZED:
+        return False
+    if get_category(user_id, name) is None:
+        return False
+    with _get_conn() as conn:
+        conn.execute(
+            "UPDATE transactions SET category = ? WHERE user_id = ? AND category = ?",
+            (UNCATEGORIZED, user_id, name),
+        )
+        conn.execute("DELETE FROM budgets WHERE user_id = ? AND category = ?", (user_id, name))
+        conn.execute("DELETE FROM categories WHERE user_id = ? AND name = ?", (user_id, name))
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Transactions (per-user)
 # ---------------------------------------------------------------------------
 
 def get_all_transactions(user_id: str) -> list[dict]:
     with _get_conn() as conn:
         rows = conn.execute(
-            "SELECT id, user_id, date, vendor, amount, type, account, note, manual_category "
+            "SELECT id, user_id, date, vendor, amount, type, category, account, note "
             "FROM transactions WHERE user_id = ? ORDER BY date DESC",
             (user_id,),
         ).fetchall()
@@ -231,19 +368,20 @@ def insert_transaction(
     vendor: str,
     amount: float,
     tx_type: str = "expense",
-    manual_category: str | None = None,
+    category: str | None = None,
     account: str | None = None,
     note: str | None = None,
 ) -> dict:
     new_id = str(uuid.uuid4())
     date = normalize_date(date)
     tx_type = _normalize_type(tx_type)
+    category = _clean_category(category)
     with _get_conn() as conn:
         conn.execute(
             "INSERT INTO transactions "
-            "(id, user_id, date, vendor, amount, type, account, note, manual_category) "
+            "(id, user_id, date, vendor, amount, type, category, account, note) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (new_id, user_id, date, vendor, amount, tx_type, account, note, manual_category),
+            (new_id, user_id, date, vendor, amount, tx_type, category, account, note),
         )
     return {
         "transaction_id": new_id,
@@ -251,20 +389,13 @@ def insert_transaction(
         "vendor": vendor,
         "amount": amount,
         "type": tx_type,
+        "category": category,
         "account": account,
         "note": note,
-        "manual_category": manual_category,
     }
 
 
 def update_transaction(user_id: str, tx_id: str, fields: dict) -> dict | None:
-    """
-    Partial update using only the keys present in `fields`, scoped to the user.
-    - Non-nullable fields (date, vendor, amount, type): updated only when not None.
-    - Nullable fields (manual_category, account, note): updated even when None,
-      which sets the DB column to NULL.
-    Returns None only when the transaction does not exist for this user.
-    """
     if _fetch_one(user_id, tx_id) is None:
         return None
 
@@ -277,6 +408,8 @@ def update_transaction(user_id: str, tx_id: str, fields: dict) -> dict | None:
                 updates[k] = _normalize_type(v)
             else:
                 updates[k] = v
+        elif k == "category":
+            updates[k] = _clean_category(v)  # never NULL; empty → Uncategorized
         elif k in _NULLABLE:
             updates[k] = v  # None → SQL NULL is intentional
 
@@ -305,7 +438,7 @@ def delete_transaction(user_id: str, tx_id: str) -> bool:
 def _fetch_one(user_id: str, tx_id: str) -> dict | None:
     with _get_conn() as conn:
         row = conn.execute(
-            "SELECT id, user_id, date, vendor, amount, type, account, note, manual_category "
+            "SELECT id, user_id, date, vendor, amount, type, category, account, note "
             "FROM transactions WHERE id = ? AND user_id = ?",
             (tx_id, user_id),
         ).fetchone()
@@ -313,11 +446,10 @@ def _fetch_one(user_id: str, tx_id: str) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
-# Budgets (scoped to a user_id)
+# Budgets (per-user)
 # ---------------------------------------------------------------------------
 
 def get_budgets(user_id: str) -> dict[str, float]:
-    """Return {category: monthly_limit} for every category with a budget set."""
     with _get_conn() as conn:
         rows = conn.execute(
             "SELECT category, monthly_limit FROM budgets WHERE user_id = ?", (user_id,)
@@ -326,7 +458,6 @@ def get_budgets(user_id: str) -> dict[str, float]:
 
 
 def set_budget(user_id: str, category: str, monthly_limit: float | None) -> None:
-    """Upsert a budget. A None/<=0 limit removes the budget for that category."""
     with _get_conn() as conn:
         if monthly_limit is None or monthly_limit <= 0:
             conn.execute(

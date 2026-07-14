@@ -1,10 +1,10 @@
 # Cashflow
 
 A private, personal finance ledger that helps you see **where your money goes**.
-Create an account, log income and expenses, watch your net balance and savings
-rate, tag transactions to accounts, set monthly budgets per category, and let
-Cashflow file every transaction into a sensible category automatically — all
-wrapped in an Apple-style **liquid-glass** interface.
+Create an account, log income and expenses, organise them with your own
+categories and accounts, watch your net balance and savings rate, and set
+monthly budgets per category — all wrapped in an Apple-style **liquid-glass**
+interface.
 
 ---
 
@@ -32,14 +32,15 @@ wrapped in an Apple-style **liquid-glass** interface.
 - Live progress bars that turn amber as you approach the limit and red when you
   go over, with the amount **left / over** shown for the current month
 
-**Transactions**
+**Transactions & categories**
 - Add income *or* expenses with a clean type toggle, an optional **account** tag
   and a free-text **note**
-- **Automatic categorisation** on every transaction (predictable keyword rules —
-  no waiting, no surprises), with a per-row **manual override** and one-click
-  **revert to auto**
+- **Your own categories** — every account starts with a sensible default set you
+  can fully manage: create, rename, recolour, or delete. Pick a category (or
+  create one on the spot) right from the add/edit form. Renames and deletes
+  cascade safely (a deleted category's transactions fall back to *Uncategorized*).
 - Live **search** (vendor + notes), filter by **type**, **account** or
-  **category**, **manual-only** filter, and **sortable** columns
+  **category**, and **sortable** columns
 - Optimistic add / edit / delete with a confirm step before deletes
 - Toast notifications, CSV export, and keyboard shortcuts
   (`N` add · `/` focus search · `Esc` close)
@@ -57,20 +58,32 @@ sideways.
 
 ---
 
-## How categorisation works
+## Categories
 
-Every transaction is filed into a category the moment it's read, using ordered
-keyword rules (`backend/categorize.py`) matched against the merchant/description
-string — so `AMZN Mktp US` → **Shopping**, `SHELL OIL 57442` → **Transport**,
-`DIRECT DEPOSIT PAYROLL` → **Salary**. This is **instant**, **predictable**, and
-**overridable** — pick any category by hand and it sticks (stored as
-`manual_category`); the effective category is `manual_category` if set, otherwise
-the auto suggestion. Clear the override to fall back to auto.
+Categorisation is **fully manual and yours to control** — there is no keyword
+guessing that misfires on unusual descriptions. Every new account is seeded with
+a sensible default set, and you can create, rename, recolour, or delete
+categories from the **Categories** manager (or create one inline while adding a
+transaction). Each category has a name, a kind (expense / income) and a colour
+that's used consistently across the donut, budgets, and table.
 
-Expense categories: Housing · Utilities · Groceries · Dining · Transport ·
+Renames cascade to the affected transactions and budgets; deleting a category
+reassigns its transactions to **Uncategorized** (which can't be deleted) and
+removes its budget.
+
+Default expense categories: Housing · Utilities · Groceries · Dining · Transport ·
 Travel · Subscriptions · Entertainment · Health & Fitness · Shopping ·
-Education · Other. Income categories: Salary · Freelance · Investments ·
-Refunds · Other Income.
+Education · Other · Uncategorized. Default income categories: Salary · Freelance ·
+Investments · Refunds · Other Income.
+
+## Security
+
+Passwords are hashed with salted **PBKDF2-HMAC-SHA256** and never stored in the
+clear; a strength policy (length + letters + numbers + variety) is enforced.
+Sessions are stateless **HMAC-signed, self-expiring tokens**. Repeated failed
+logins are **rate-limited per username** (lockout after 5 failures in 15 minutes)
+to blunt brute-force attempts. All data access is scoped to the authenticated
+user, and every secret comparison is constant-time.
 
 ---
 
@@ -117,24 +130,27 @@ The app runs at `http://localhost:3000`. The frontend defaults to
 
 ## API
 
-All `/api/transactions`, `/api/budgets`, and `/api/auth/*` (except register /
-login) routes require an `Authorization: Bearer <token>` header and operate only
-on the signed-in user's data.
+All routes except `/health`, `/api/auth/register`, and `/api/auth/login` require
+an `Authorization: Bearer <token>` header and operate only on the signed-in
+user's data.
 
 | Method | Route | Description |
 |---|---|---|
 | `GET` | `/health` | Liveness probe |
-| `GET` | `/api/categories` | The fixed category vocabulary (all / expense / income) |
 | `POST` | `/api/auth/register` | Create an account → `{ token, user }` |
-| `POST` | `/api/auth/login` | Sign in → `{ token, user }` |
+| `POST` | `/api/auth/login` | Sign in → `{ token, user }` (rate-limited) |
 | `GET` | `/api/auth/me` | The current user |
 | `PUT` | `/api/auth/password` | Change password (`current_password`, `new_password`) |
 | `PUT` | `/api/auth/currency` | Update preferred currency |
 | `DELETE` | `/api/auth/data` | Clear all of the user's transactions & budgets |
 | `DELETE` | `/api/auth/account` | Delete the account and all its data |
-| `GET` | `/api/transactions` | The user's transactions, each with an auto `category` |
-| `POST` | `/api/transactions` | Create (`type` `expense`\|`income`; optional `account`, `note`) |
-| `PUT` | `/api/transactions/{id}` | Partial update; send `manual_category: null` to clear an override |
+| `GET` | `/api/categories` | The user's categories (`{ categories, expense, income }`) |
+| `POST` | `/api/categories` | Create a category (`name`, `kind`, `color`) |
+| `PUT` | `/api/categories/{name}` | Rename (`new_name`) and/or recolour (`color`); cascades |
+| `DELETE` | `/api/categories/{name}` | Delete (reassigns its transactions to Uncategorized) |
+| `GET` | `/api/transactions` | The user's transactions |
+| `POST` | `/api/transactions` | Create (`type` `expense`\|`income`; optional `category`, `account`, `note`) |
+| `PUT` | `/api/transactions/{id}` | Partial update |
 | `DELETE` | `/api/transactions/{id}` | Delete |
 | `GET` | `/api/budgets` | `{ category: monthly_limit }` for every budget set |
 | `PUT` | `/api/budgets/{category}` | Set a monthly limit (`monthly_limit: null`/`0` removes it) |
@@ -169,12 +185,12 @@ the `CORS_ORIGINS` env var (comma-separated).
 
 | Layer | Technology |
 |---|---|
-| **Backend** | Python, FastAPI, Uvicorn (gzip + input validation), stdlib-only auth (PBKDF2 + HMAC-signed tokens) & categorisation |
+| **Backend** | Python, FastAPI, Uvicorn (gzip + input validation), stdlib-only auth (PBKDF2 + HMAC-signed tokens, brute-force throttle) |
 | **Database** | SQLite (`sqlite3`, no ORM), per-user scoping |
 | **Frontend** | Next.js 16 (App Router), React 19, TypeScript |
-| **Styling** | Tailwind CSS v4 — custom **glassmorphism** design system |
+| **Styling** | Tailwind CSS v4 — custom **liquid-glass** design system |
 | **UI** | Framer Motion, Recharts, lucide-react, next-themes, react-day-picker |
 
-No heavy ML or crypto dependencies — authentication and categorisation are plain
+No heavy ML or crypto dependencies — authentication is plain standard-library
 Python, so installs stay fast and the service stays light. `npm run lint` and
 `npm run build` validate the frontend.

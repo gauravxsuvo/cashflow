@@ -3,10 +3,9 @@
 import { useMemo, useState } from "react";
 import { Check, Pencil, Plus, Target, X } from "lucide-react";
 import type { Budgets } from "@/types";
-import { EXPENSE_CATEGORIES } from "@/lib/categories";
-import { categoryColor } from "@/lib/categoryColors";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { useSettings } from "@/context/SettingsContext";
+import { useCategories } from "@/context/CategoriesContext";
 
 interface BudgetPanelProps {
   monthLabel: string;
@@ -23,6 +22,8 @@ function barColor(ratio: number): string {
 
 export default function BudgetPanel({ monthLabel, spentByCategory, budgets, onSetBudget }: BudgetPanelProps) {
   const { currency } = useSettings();
+  const { namesForType, colorFor } = useCategories();
+  const expenseCategories = useMemo(() => namesForType("expense"), [namesForType]);
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [adding, setAdding] = useState(false);
@@ -36,7 +37,7 @@ export default function BudgetPanel({ monthLabel, spentByCategory, budgets, onSe
       if (amt > 0) names.add(cat);
     }
     return Array.from(names)
-      .filter((c) => EXPENSE_CATEGORIES.includes(c as (typeof EXPENSE_CATEGORIES)[number]))
+      .filter((c) => expenseCategories.includes(c))
       .map((category) => {
         const spent = spentByCategory[category] ?? 0;
         const limit = budgets[category] ?? null;
@@ -50,9 +51,9 @@ export default function BudgetPanel({ monthLabel, spentByCategory, budgets, onSe
         if (aOver !== bOver) return bOver - aOver;
         return b.spent - a.spent;
       });
-  }, [budgets, spentByCategory]);
+  }, [budgets, spentByCategory, expenseCategories]);
 
-  const unbudgeted = EXPENSE_CATEGORIES.filter((c) => !(c in budgets));
+  const unbudgeted = expenseCategories.filter((c) => !(c in budgets));
 
   const totalBudget = Object.values(budgets).reduce((s, v) => s + v, 0);
   const totalSpentBudgeted = Object.keys(budgets).reduce((s, c) => s + (spentByCategory[c] ?? 0), 0);
@@ -118,7 +119,7 @@ export default function BudgetPanel({ monthLabel, spentByCategory, budgets, onSe
                   <div className="flex min-w-0 items-center gap-2">
                     <span
                       className="h-3 w-3 shrink-0 rounded-full ring-2 ring-[var(--hairline)]"
-                      style={{ backgroundColor: categoryColor(category) }}
+                      style={{ backgroundColor: colorFor(category) }}
                     />
                     <span className="truncate text-sm font-bold text-[var(--foreground)]">{category}</span>
                   </div>

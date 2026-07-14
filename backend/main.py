@@ -10,20 +10,32 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, field_validator
 
-from auth import create_token, hash_password, verify_password, verify_token
-from categorize import ALL_CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, categorize_transactions
+from auth import (
+    LoginThrottle,
+    create_token,
+    hash_password,
+    validate_password,
+    verify_password,
+    verify_token,
+)
+from default_categories import UNCATEGORIZED
 from database import (
     clear_user_data,
+    create_category,
     create_user,
+    delete_category,
     delete_transaction,
     delete_user,
+    ensure_default_categories,
     get_all_transactions,
     get_budgets,
+    get_categories,
     get_user_by_id,
     get_user_by_username,
     init_db,
     insert_transaction,
     set_budget,
+    update_category,
     update_transaction,
     update_user_currency,
     update_user_password,
@@ -33,14 +45,12 @@ from database import (
 # Validation helpers
 # ---------------------------------------------------------------------------
 
-# Upper bound for any single amount / budget. Generous enough for real personal
-# finance (a trillion) while preventing pathological values that would break
-# formatting and the UI layout.
 _MAX_AMOUNT = 1e12
 _SUPPORTED_CURRENCIES = {"USD", "EUR", "GBP", "INR", "JPY", "CAD", "AUD", "CHF", "CNY", "BRL"}
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9_.-]{3,30}$")
-_MIN_PASSWORD = 8
-_MAX_PASSWORD = 128
+_HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+_throttle = LoginThrottle(max_attempts=5, window_seconds=900)
 
 
 def _check_finite(v: Optional[float]) -> Optional[float]:
@@ -69,19 +79,23 @@ class Credentials(BaseModel):
     def _valid_username(cls, v: str) -> str:
         v = (v or "").strip()
         if not _USERNAME_RE.match(v):
-            raise ValueError(
-                "Username must be 3–30 characters (letters, numbers, . _ - )."
-            )
+            raise ValueError("Username must be 3–30 characters (letters, numbers, . _ - ).")
         return v
 
     @field_validator("password")
     @classmethod
     def _valid_password(cls, v: str) -> str:
-        if not v or len(v) < _MIN_PASSWORD:
-            raise ValueError(f"Password must be at least {_MIN_PASSWORD} characters.")
-        if len(v) > _MAX_PASSWORD:
-            raise ValueError(f"Password must be at most {_MAX_PASSWORD} characters.")
+        err = validate_password(v or "")
+        if err:
+            raise ValueError(err)
         return v
+
+
+class LoginCredentials(BaseModel):
+    """Login only checks presence — never leak the password policy on sign-in."""
+
+    username: str
+    password: str
 
 
 class PasswordChange(BaseModel):
@@ -91,10 +105,9 @@ class PasswordChange(BaseModel):
     @field_validator("new_password")
     @classmethod
     def _valid_password(cls, v: str) -> str:
-        if not v or len(v) < _MIN_PASSWORD:
-            raise ValueError(f"Password must be at least {_MIN_PASSWORD} characters.")
-        if len(v) > _MAX_PASSWORD:
-            raise ValueError(f"Password must be at most {_MAX_PASSWORD} characters.")
+        err = validate_password(v or "")
+        if err:
+            raise ValueError(err)
         return v
 
 
@@ -110,12 +123,57 @@ class CurrencyUpdate(BaseModel):
         return v
 
 
+def _clean_name(v: str) -> str:
+    v = (v or "").strip()
+    if not (1 <= len(v) <= 30):
+        raise ValueError("Category name must be 1–30 characters.")
+    return v
+
+
+def _clean_color(v: str) -> str:
+    v = (v or "").strip()
+    if not _HEX_COLOR_RE.match(v):
+        raise ValueError("Color must be a hex value like #a1b2c3.")
+    return v.lower()
+
+
+class CategoryCreate(BaseModel):
+    name: str
+    kind: Literal["expense", "income"] = "expense"
+    color: str = "#cbd5e1"
+
+    @field_validator("name")
+    @classmethod
+    def _v_name(cls, v: str) -> str:
+        return _clean_name(v)
+
+    @field_validator("color")
+    @classmethod
+    def _v_color(cls, v: str) -> str:
+        return _clean_color(v)
+
+
+class CategoryUpdate(BaseModel):
+    new_name: Optional[str] = None
+    color: Optional[str] = None
+
+    @field_validator("new_name")
+    @classmethod
+    def _v_name(cls, v: Optional[str]) -> Optional[str]:
+        return _clean_name(v) if v is not None else None
+
+    @field_validator("color")
+    @classmethod
+    def _v_color(cls, v: Optional[str]) -> Optional[str]:
+        return _clean_color(v) if v is not None else None
+
+
 class TransactionCreate(BaseModel):
     date: str
     vendor: str
     amount: float
     type: Literal["expense", "income"] = "expense"
-    manual_category: Optional[str] = None
+    category: Optional[str] = None
     account: Optional[str] = None
     note: Optional[str] = None
 
@@ -134,7 +192,7 @@ class TransactionCreate(BaseModel):
             raise ValueError("amount must be zero or positive")
         return v
 
-    @field_validator("manual_category", "account", "note")
+    @field_validator("category", "account", "note")
     @classmethod
     def _clean_optional(cls, v: Optional[str]) -> Optional[str]:
         return (v.strip() or None) if v else None
@@ -145,7 +203,7 @@ class TransactionUpdate(BaseModel):
     vendor: Optional[str] = None
     amount: Optional[float] = None
     type: Optional[Literal["expense", "income"]] = None
-    manual_category: Optional[str] = None
+    category: Optional[str] = None
     account: Optional[str] = None
     note: Optional[str] = None
 
@@ -164,10 +222,9 @@ class TransactionUpdate(BaseModel):
             raise ValueError("amount must be zero or positive")
         return v
 
-    @field_validator("manual_category", "account", "note")
+    @field_validator("category", "account", "note")
     @classmethod
     def _clean_optional(cls, v: Optional[str]) -> Optional[str]:
-        # Empty string is treated as "clear" (→ None → SQL NULL).
         if v is None:
             return None
         return v.strip() or None
@@ -194,8 +251,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Cashflow API", lifespan=lifespan)
 
-# Origins are configurable via the CORS_ORIGINS env var (comma-separated);
-# falls back to the local dev + production Vercel origins.
 _DEFAULT_ORIGINS = ["http://localhost:3000", "https://ai-finance-clustering.vercel.app"]
 _env_origins = os.getenv("CORS_ORIGINS")
 allow_origins = (
@@ -217,7 +272,6 @@ _bearer = HTTPBearer(auto_error=False)
 
 
 def _public_user(user: dict) -> dict:
-    """Strip secrets before sending a user object to the client."""
     return {
         "id": user["id"],
         "username": user["username"],
@@ -229,7 +283,6 @@ def _public_user(user: dict) -> dict:
 def get_current_user(
     creds: Optional[HTTPAuthorizationCredentials] = Depends(_bearer),
 ) -> dict:
-    """Resolve the authenticated user from the Bearer token, or 401."""
     if creds is None or (creds.scheme or "").lower() != "bearer":
         raise HTTPException(status_code=401, detail="Not authenticated.")
     user_id = verify_token(creds.credentials)
@@ -255,12 +308,6 @@ def health():
     return {"status": "ok"}
 
 
-@app.get("/api/categories")
-def list_categories() -> dict:
-    """The fixed category vocabulary the frontend picker uses."""
-    return {"all": ALL_CATEGORIES, "expense": EXPENSE_CATEGORIES, "income": INCOME_CATEGORIES}
-
-
 # ---------------------------------------------------------------------------
 # Auth
 # ---------------------------------------------------------------------------
@@ -274,13 +321,24 @@ def register(body: Credentials) -> dict:
 
 
 @app.post("/api/auth/login")
-def login(body: Credentials) -> dict:
+def login(body: LoginCredentials) -> dict:
+    key = (body.username or "").strip().lower()
+    wait = _throttle.seconds_until_unlocked(key)
+    if wait > 0:
+        minutes = max(1, math.ceil(wait / 60))
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed attempts. Try again in {minutes} minute(s).",
+        )
+
     user = get_user_by_username(body.username)
-    # Always run the verify to keep timing uniform whether or not the user exists.
+    # Uniform timing whether or not the account exists.
     placeholder = "pbkdf2_sha256$240000$00$00"
     ok = verify_password(body.password, user["password_hash"] if user else placeholder)
     if not user or not ok:
+        _throttle.record_failure(key)
         raise HTTPException(status_code=401, detail="Incorrect username or password.")
+    _throttle.reset(key)
     return {"token": create_token(user["id"]), "user": _public_user(user)}
 
 
@@ -315,39 +373,78 @@ def delete_account(user: dict = Depends(get_current_user)) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Categories (per-user)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/categories")
+def list_categories(user: dict = Depends(get_current_user)) -> dict:
+    ensure_default_categories(user["id"])
+    cats = get_categories(user["id"])
+    return {
+        "categories": cats,
+        "expense": [c["name"] for c in cats if c["kind"] == "expense"],
+        "income": [c["name"] for c in cats if c["kind"] == "income"],
+    }
+
+
+@app.post("/api/categories", status_code=201)
+def add_category(body: CategoryCreate, user: dict = Depends(get_current_user)) -> dict:
+    created = create_category(user["id"], body.name, body.kind, body.color)
+    if created is None:
+        raise HTTPException(status_code=409, detail="A category with that name already exists.")
+    return created
+
+
+@app.put("/api/categories/{name}")
+def edit_category(name: str, body: CategoryUpdate, user: dict = Depends(get_current_user)) -> dict:
+    try:
+        updated = update_category(user["id"], name, body.new_name, body.color)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Category not found.")
+    return updated
+
+
+@app.delete("/api/categories/{name}", status_code=204)
+def remove_category(name: str, user: dict = Depends(get_current_user)) -> None:
+    if name == UNCATEGORIZED:
+        raise HTTPException(status_code=400, detail="The Uncategorized category can't be deleted.")
+    if not delete_category(user["id"], name):
+        raise HTTPException(status_code=404, detail="Category not found.")
+
+
+# ---------------------------------------------------------------------------
 # Transactions (per-user)
 # ---------------------------------------------------------------------------
 
 @app.get("/api/transactions")
 def get_transactions(user: dict = Depends(get_current_user)) -> list[dict]:
-    """All of the user's transactions, each enriched with an auto `category`."""
-    return categorize_transactions(get_all_transactions(user["id"]))
+    return get_all_transactions(user["id"])
 
 
 @app.post("/api/transactions", status_code=201)
 def create_transaction(body: TransactionCreate, user: dict = Depends(get_current_user)) -> dict:
-    row = insert_transaction(
+    return insert_transaction(
         user["id"],
         body.date,
         body.vendor,
         body.amount,
         body.type,
-        body.manual_category,
+        body.category,
         body.account,
         body.note,
     )
-    return categorize_transactions([row])[0]
 
 
 @app.put("/api/transactions/{tx_id}")
 def edit_transaction(
     tx_id: str, body: TransactionUpdate, user: dict = Depends(get_current_user)
 ) -> dict:
-    # exclude_unset=True: absent fields are not sent, so None means explicit NULL
     result = update_transaction(user["id"], tx_id, body.model_dump(exclude_unset=True))
     if result is None:
         raise HTTPException(status_code=404, detail="Transaction not found.")
-    return categorize_transactions([result])[0]
+    return result
 
 
 @app.delete("/api/transactions/{tx_id}", status_code=204)

@@ -53,7 +53,14 @@ def main() -> None:
         print(f"Cleared {removed} existing rows.")
 
     for t in generate_transactions(args.count):
-        insert_transaction(user_id, t["date"], t["vendor"], t["amount"], t.get("type", "expense"))
+        insert_transaction(
+            user_id,
+            t["date"],
+            t["vendor"],
+            t["amount"],
+            t.get("type", "expense"),
+            t.get("category"),
+        )
 
     print(f"Seeded {args.count} transactions for '{args.username}'.")
 

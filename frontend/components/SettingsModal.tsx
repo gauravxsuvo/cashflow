@@ -143,7 +143,7 @@ export default function SettingsModal({ onClose, onDataCleared }: SettingsModalP
           exit={{ opacity: 0, scale: 0.96, y: 12 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
         >
-          <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[20px] border-b border-[var(--hairline)] bg-[var(--glass-fill-strong)] px-5 py-4 backdrop-blur-xl">
+          <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[20px] border-b border-[var(--hairline)] bg-[var(--nb-surface)] px-5 py-4 backdrop-blur-xl">
             <h2 className="text-lg font-bold tracking-tight text-[var(--foreground)]">Settings</h2>
             <button onClick={onClose} aria-label="Close settings" className="nb-icon-btn h-9 w-9">
               <X className="h-4 w-4" />

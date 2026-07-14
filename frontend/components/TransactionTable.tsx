@@ -1,12 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Pin, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import type { Transaction } from "@/types";
 import { formatCurrency } from "@/lib/formatCurrency";
-import { categoryColor } from "@/lib/categoryColors";
 import { effectiveCategory } from "@/lib/transactions";
 import { useSettings } from "@/context/SettingsContext";
+import { useCategories } from "@/context/CategoriesContext";
 
 export type SortKey = "date" | "vendor" | "amount" | "category";
 export type SortDir = "asc" | "desc";
@@ -19,22 +19,6 @@ interface TransactionTableProps {
   onSort: (key: SortKey) => void;
   onEdit: (tx: Transaction) => void;
   onDelete: (tx: Transaction) => void;
-  onRevert: (tx: Transaction) => void;
-}
-
-function CategoryBadge({ name, isManual }: { name: string; isManual: boolean }) {
-  const color = categoryColor(name);
-  return (
-    <span
-      className="nb-badge"
-      style={{ backgroundColor: `${color}26`, borderColor: `${color}66` }}
-      title={isManual ? "You set this category" : "Auto-categorised"}
-    >
-      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-      {isManual ? <Pin className="h-2.5 w-2.5 shrink-0 opacity-70" /> : <Sparkles className="h-2.5 w-2.5 shrink-0 opacity-70" />}
-      {name}
-    </span>
-  );
 }
 
 function SortHeader({
@@ -86,9 +70,9 @@ export default function TransactionTable({
   onSort,
   onEdit,
   onDelete,
-  onRevert,
 }: TransactionTableProps) {
   const { currency } = useSettings();
+  const { colorFor } = useCategories();
   const colSpan = showAccounts ? 6 : 5;
 
   return (
@@ -117,8 +101,8 @@ export default function TransactionTable({
             </tr>
           )}
           {transactions.map((tx, i) => {
-            const displayCategory = effectiveCategory(tx);
-            const isManual = tx.manual_category != null;
+            const category = effectiveCategory(tx);
+            const color = colorFor(category);
             const isIncome = tx.type === "income";
             const note = tx.note?.trim();
             return (
@@ -167,20 +151,16 @@ export default function TransactionTable({
                   )}
                 </td>
                 <td className="px-5 py-3 align-top">
-                  <CategoryBadge name={displayCategory} isManual={isManual} />
+                  <span
+                    className="nb-badge"
+                    style={{ backgroundColor: `${color}26`, boxShadow: `inset 0 0 0 1px ${color}66` }}
+                  >
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                    {category}
+                  </span>
                 </td>
                 <td className="px-5 py-3 align-top">
                   <div className="flex items-center justify-end gap-1.5">
-                    {isManual && (
-                      <button
-                        onClick={() => onRevert(tx)}
-                        className="nb-icon-btn h-8 w-8"
-                        aria-label="Revert to auto category"
-                        title="Revert to auto category"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                      </button>
-                    )}
                     <button
                       onClick={() => onEdit(tx)}
                       className="nb-icon-btn h-8 w-8"

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { DayPicker } from "react-day-picker";
 import { format, parse, isValid } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { usePopover } from "@/hooks/usePopover";
 
 // Full Tailwind classNames — no react-day-picker default CSS needed
 const DPC = {
@@ -45,6 +46,8 @@ interface DatePickerProps {
 export default function DatePicker({ value, onChange, required }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const { placement, measure } = usePopover();
 
   const parsed = value ? parse(value, "yyyy-MM-dd", new Date()) : undefined;
   const selectedDate = parsed && isValid(parsed) ? parsed : undefined;
@@ -76,8 +79,12 @@ export default function DatePicker({ value, onChange, required }: DatePickerProp
   return (
     <div ref={containerRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (!open) measure(triggerRef.current, 380);
+          setOpen((o) => !o);
+        }}
         className="nb-input flex items-center gap-2 text-left"
       >
         <CalendarDays className="h-4 w-4 shrink-0 text-[var(--nb-muted)]" />
@@ -93,7 +100,9 @@ export default function DatePicker({ value, onChange, required }: DatePickerProp
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: -4 }}
             transition={{ duration: 0.14, ease: "easeOut" }}
-            className="nb-card absolute left-0 top-full z-50 mt-2 p-4 text-[var(--foreground)]"
+            className={`nb-card absolute left-0 z-50 p-4 text-[var(--foreground)] ${
+              placement === "top" ? "bottom-full mb-2" : "top-full mt-2"
+            }`}
           >
             <DayPicker
               mode="single"

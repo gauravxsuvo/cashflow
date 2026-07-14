@@ -11,8 +11,8 @@ export default function EmptyState({ onAdd }: { onAdd: () => void }) {
       <div>
         <h3 className="text-xl font-bold tracking-tight text-[var(--foreground)]">Start tracking your money</h3>
         <p className="mx-auto mt-1.5 max-w-sm text-sm font-medium text-[var(--muted)]">
-          Add an income or expense and Cashflow will sort it into a category, track your net balance,
-          and keep your budgets up to date automatically.
+          Add an income or expense, tag it with a category and account, and Cashflow tracks your net
+          balance, spending and budgets — all in one place.
         </p>
       </div>
       <button onClick={onAdd} className="nb-btn nb-btn-primary px-5 py-2.5 text-sm">

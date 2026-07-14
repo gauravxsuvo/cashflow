@@ -4,8 +4,8 @@ import { Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { PieChart as PieIcon } from "lucide-react";
 import type { CategorySummary } from "@/types";
 import { formatCurrency } from "@/lib/formatCurrency";
-import { categoryColor } from "@/lib/categoryColors";
 import { useSettings } from "@/context/SettingsContext";
+import { useCategories } from "@/context/CategoriesContext";
 
 interface CategoryChartProps {
   data: CategorySummary[];
@@ -15,10 +15,11 @@ interface CategoryChartProps {
 
 export default function CategoryChart({ data, activeCategory, onSelect }: CategoryChartProps) {
   const { currency } = useSettings();
+  const { colorFor } = useCategories();
   const total = data.reduce((sum, d) => sum + d.total, 0);
 
   const chartData = data.map((d) => {
-    const base = categoryColor(d.category);
+    const base = colorFor(d.category);
     const dimmed = activeCategory && activeCategory !== d.category;
     return {
       name: d.category,
@@ -96,7 +97,7 @@ export default function CategoryChart({ data, activeCategory, onSelect }: Catego
             {data.map((d) => {
               const isActive = activeCategory === d.category;
               const dimmed = activeCategory && !isActive;
-              const color = categoryColor(d.category);
+              const color = colorFor(d.category);
               return (
                 <button
                   key={d.category}

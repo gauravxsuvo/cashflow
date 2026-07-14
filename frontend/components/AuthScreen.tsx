@@ -11,6 +11,25 @@ type Mode = "login" | "register";
 
 const USERNAME_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 
+const STRENGTH = [
+  { label: "Too weak", color: "#e5484d" },
+  { label: "Weak", color: "#f59e0b" },
+  { label: "Fair", color: "#eab308" },
+  { label: "Good", color: "#22c55e" },
+  { label: "Strong", color: "#10b981" },
+];
+
+/** 0–4 heuristic mirroring the backend policy (length + letter + number + variety). */
+function passwordScore(pw: string): number {
+  if (!pw) return 0;
+  let s = 0;
+  if (pw.length >= 8) s++;
+  if (/[a-zA-Z]/.test(pw)) s++;
+  if (/[0-9]/.test(pw)) s++;
+  if (pw.length >= 12 || new Set(pw).size >= 8) s++;
+  return s;
+}
+
 export default function AuthScreen() {
   const { login, register } = useAuth();
   const [mode, setMode] = useState<Mode>("login");
@@ -22,6 +41,7 @@ export default function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const isRegister = mode === "register";
+  const score = passwordScore(password);
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -34,7 +54,12 @@ export default function AuthScreen() {
       return "Username must be 3–30 characters (letters, numbers, . _ - ).";
     }
     if (password.length < 8) return "Password must be at least 8 characters.";
-    if (isRegister && password !== confirm) return "Passwords don't match.";
+    if (isRegister) {
+      if (!/[a-zA-Z]/.test(password)) return "Password must include at least one letter.";
+      if (!/[0-9]/.test(password)) return "Password must include at least one number.";
+      if (new Set(password).size < 4) return "Password is too repetitive — mix in more characters.";
+      if (password !== confirm) return "Passwords don't match.";
+    }
     return null;
   }
 
@@ -83,14 +108,14 @@ export default function AuthScreen() {
               beautifully clear.
             </h1>
             <p className="mt-4 max-w-md text-base leading-relaxed text-[var(--muted)]">
-              A private ledger for your income, expenses and budgets. Cashflow files every
-              transaction automatically and shows you exactly where your money goes.
+              A private ledger for your income, expenses and budgets. Organise every transaction with
+              your own categories and accounts, and see exactly where your money goes.
             </p>
           </div>
 
           <ul className="flex flex-col gap-4">
             {[
-              { icon: Sparkles, text: "Automatic, predictable categorisation" },
+              { icon: Sparkles, text: "Your own categories, colours and accounts" },
               { icon: BarChart3, text: "Net balance, savings rate & trends at a glance" },
               { icon: Target, text: "Monthly budgets that keep you on track" },
             ].map(({ icon: Icon, text }) => (
@@ -199,6 +224,26 @@ export default function AuthScreen() {
                   {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+
+              {isRegister && password && (
+                <div className="mt-2">
+                  <div className="flex gap-1">
+                    {[0, 1, 2, 3].map((i) => (
+                      <span
+                        key={i}
+                        className="h-1.5 flex-1 rounded-full transition-colors"
+                        style={{
+                          background: i < score ? STRENGTH[score].color : "var(--hairline)",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-1 text-xs font-medium" style={{ color: STRENGTH[score].color }}>
+                    {STRENGTH[score].label}
+                    <span className="text-[var(--muted)]"> · 8+ chars with letters &amp; numbers</span>
+                  </p>
+                </div>
+              )}
             </div>
 
             <AnimatePresence initial={false}>

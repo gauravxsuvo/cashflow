@@ -1,8 +1,11 @@
 import type {
   AuthResponse,
   Budgets,
+  CategoriesResponse,
+  Category,
   Transaction,
   TransactionCreate,
+  TransactionType,
   TransactionUpdate,
   User,
 } from "@/types";
@@ -107,6 +110,21 @@ export const api = {
     }),
   wipeData: () => request<{ removed: number }>("/api/auth/data", { method: "DELETE" }),
   deleteAccount: () => request<void>("/api/auth/account", { method: "DELETE" }),
+
+  // Categories
+  getCategories: () => request<CategoriesResponse>("/api/categories"),
+  createCategory: (name: string, kind: TransactionType, color: string) =>
+    request<Category>("/api/categories", {
+      method: "POST",
+      body: JSON.stringify({ name, kind, color }),
+    }),
+  updateCategory: (name: string, patch: { new_name?: string; color?: string }) =>
+    request<Category>(`/api/categories/${encodeURIComponent(name)}`, {
+      method: "PUT",
+      body: JSON.stringify(patch),
+    }),
+  deleteCategory: (name: string) =>
+    request<void>(`/api/categories/${encodeURIComponent(name)}`, { method: "DELETE" }),
 
   // Data
   getTransactions: () => request<Transaction[]>("/api/transactions"),

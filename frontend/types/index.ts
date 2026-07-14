@@ -6,14 +6,24 @@ export interface Transaction {
   vendor: string | null;
   amount: number | null;
   type: TransactionType;
+  /** The category the user chose (falls back to "Uncategorized"). */
+  category: string;
   /** Optional account/wallet this belongs to (e.g. "Checking", "Cash"). */
   account: string | null;
   /** Optional free-text memo. */
   note: string | null;
-  /** Auto-suggested category from the backend keyword rules. */
-  category: string;
-  /** User override; when set it wins over `category`. */
-  manual_category: string | null;
+}
+
+export interface Category {
+  name: string;
+  kind: TransactionType;
+  color: string;
+}
+
+export interface CategoriesResponse {
+  categories: Category[];
+  expense: string[];
+  income: string[];
 }
 
 export interface CategorySummary {
@@ -30,7 +40,7 @@ export interface TransactionCreate {
   vendor: string;
   amount: number;
   type: TransactionType;
-  manual_category?: string | null;
+  category?: string | null;
   account?: string | null;
   note?: string | null;
 }
@@ -40,7 +50,7 @@ export interface TransactionUpdate {
   vendor?: string;
   amount?: number;
   type?: TransactionType;
-  manual_category?: string | null;
+  category?: string | null;
   account?: string | null;
   note?: string | null;
 }

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowDownRight, ArrowUpRight, X } from "lucide-react";
 import type { Transaction, TransactionType } from "@/types";
 import { api } from "@/lib/api";
-import { categoriesForType } from "@/lib/categories";
+import { useCategories } from "@/context/CategoriesContext";
 import { ACCOUNT_PRESETS } from "@/lib/accounts";
 import DatePicker from "@/components/DatePicker";
 import CategorySelect from "@/components/CategorySelect";
@@ -22,10 +22,12 @@ interface ModalForm {
   vendor: string;
   amount: string; // kept as string so the field can be cleared while typing
   type: TransactionType;
-  manual_category: string | null;
+  category: string;
   account: string;
   note: string;
 }
+
+const UNCATEGORIZED = "Uncategorized";
 
 function todayIso(): string {
   const d = new Date();
@@ -37,13 +39,14 @@ const emptyForm = (): ModalForm => ({
   vendor: "",
   amount: "",
   type: "expense",
-  manual_category: null,
+  category: UNCATEGORIZED,
   account: "",
   note: "",
 });
 
 export default function TransactionModal({ transaction, knownAccounts = [], onClose, onSuccess }: TransactionModalProps) {
   const isEdit = !!transaction;
+  const { namesForType, kindOf } = useCategories();
 
   const [form, setForm] = useState<ModalForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
@@ -57,7 +60,7 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
         vendor: transaction.vendor ?? "",
         amount: transaction.amount != null ? String(transaction.amount) : "",
         type: transaction.type,
-        manual_category: transaction.manual_category ?? null,
+        category: transaction.category || UNCATEGORIZED,
         account: transaction.account ?? "",
         note: transaction.note ?? "",
       });
@@ -82,8 +85,10 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
 
   function setType(type: TransactionType) {
     setForm((prev) => {
-      const valid = categoriesForType(type).includes(prev.manual_category ?? "");
-      return { ...prev, type, manual_category: valid ? prev.manual_category : null };
+      // Keep the category only if it belongs to the new type; otherwise reset.
+      const catKind = kindOf(prev.category);
+      const keep = catKind === type;
+      return { ...prev, type, category: keep ? prev.category : UNCATEGORIZED };
     });
   }
 
@@ -103,6 +108,7 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
 
     const account = form.account.trim() || null;
     const note = form.note.trim() || null;
+    const category = form.category.trim() || UNCATEGORIZED;
 
     try {
       if (isEdit && transaction) {
@@ -111,7 +117,7 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
           vendor: form.vendor,
           amount: amountNum,
           type: form.type,
-          manual_category: form.manual_category, // null clears the override
+          category,
           account,
           note,
         });
@@ -121,7 +127,7 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
           vendor: form.vendor,
           amount: amountNum,
           type: form.type,
-          ...(form.manual_category !== null && { manual_category: form.manual_category }),
+          category,
           ...(account && { account }),
           ...(note && { note }),
         });
@@ -138,10 +144,12 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
   const labelClass = "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--muted)]";
   const isIncome = form.type === "income";
   const accountOptions = Array.from(new Set([...ACCOUNT_PRESETS, ...knownAccounts]));
+  // Options for the current type, always including the current value.
+  const catOptions = Array.from(new Set([...namesForType(form.type), form.category]));
 
   return (
     <motion.div
-      className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-md sm:items-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -178,7 +186,7 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
               type="button"
               onClick={() => setType("income")}
               className={`nb-btn py-2.5 text-sm ${
-                isIncome ? "!border-transparent !bg-gradient-to-br !from-[var(--pos)] !to-emerald-600 !text-white" : ""
+                isIncome ? "!bg-gradient-to-br !from-[var(--pos)] !to-emerald-600 !text-white" : ""
               }`}
             >
               <ArrowUpRight className="h-4 w-4" />
@@ -253,9 +261,10 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
           <div>
             <label className={labelClass}>Category</label>
             <CategorySelect
-              value={form.manual_category}
-              options={categoriesForType(form.type)}
-              onChange={(cat) => setForm((p) => ({ ...p, manual_category: cat }))}
+              value={form.category}
+              options={catOptions}
+              kind={form.type}
+              onChange={(cat) => setForm((p) => ({ ...p, category: cat }))}
             />
           </div>
 
@@ -276,7 +285,7 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
           </div>
 
           {error && (
-            <p className="rounded-[11px] border border-[var(--neg)]/40 bg-[var(--neg)]/10 px-3.5 py-2.5 text-xs font-semibold text-[var(--neg)]">
+            <p className="rounded-[11px] bg-[var(--neg)]/10 px-3.5 py-2.5 text-xs font-semibold text-[var(--neg)] shadow-[inset_0_0_0_1px] shadow-[var(--neg)]/30">
               {error}
             </p>
           )}

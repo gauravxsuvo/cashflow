@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { CategoriesProvider } from "@/context/CategoriesContext";
 import AuthScreen from "@/components/AuthScreen";
 import Dashboard from "@/components/Dashboard";
 import { Wallet } from "lucide-react";
@@ -21,5 +22,11 @@ export default function Page() {
     );
   }
 
-  return user ? <Dashboard /> : <AuthScreen />;
+  if (!user) return <AuthScreen />;
+
+  return (
+    <CategoriesProvider>
+      <Dashboard />
+    </CategoriesProvider>
+  );
 }

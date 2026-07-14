@@ -17,14 +17,12 @@ export function exportTransactionsCsv(transactions: Transaction[]): void {
     "Amount",
     "Signed Amount",
     "Category",
-    "Source",
     "Account",
     "Note",
   ];
 
   const rows = transactions.map((tx) => {
     const category = effectiveCategory(tx);
-    const source = tx.manual_category ? "Manual" : "Auto";
     return [
       escapeCsvField(tx.date ?? ""),
       escapeCsvField(tx.vendor ?? "Unknown"),
@@ -32,7 +30,6 @@ export function exportTransactionsCsv(transactions: Transaction[]): void {
       tx.amount != null ? tx.amount.toFixed(2) : "",
       signedAmount(tx).toFixed(2),
       escapeCsvField(category),
-      source,
       escapeCsvField(tx.account ?? ""),
       escapeCsvField(tx.note ?? ""),
     ];

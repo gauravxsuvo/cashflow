@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence } from "framer-motion";
-import { Download, Plus, Search, SlidersHorizontal, Wallet, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Menu, Plus, Search, Wallet, X } from "lucide-react";
 import type { Budgets, Transaction } from "@/types";
 import type { SortKey, SortDir } from "@/components/TransactionTable";
 import { api, ApiError, BASE_URL } from "@/lib/api";
@@ -25,6 +25,7 @@ import { useToast } from "@/components/Toast";
 import SummaryCard from "@/components/SummaryCard";
 import CategoryChart from "@/components/CategoryChart";
 import CashflowChart from "@/components/CashflowChart";
+import InsightsPanel from "@/components/InsightsPanel";
 import AccountsPanel from "@/components/AccountsPanel";
 import BudgetPanel from "@/components/BudgetPanel";
 import PeriodFilter from "@/components/PeriodFilter";
@@ -33,8 +34,9 @@ import TransactionModal from "@/components/TransactionModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import ThemeToggle from "@/components/ThemeToggle";
-import UserMenu from "@/components/UserMenu";
+import Sidebar from "@/components/Sidebar";
 import SettingsModal from "@/components/SettingsModal";
+import CategoryManagerModal from "@/components/CategoryManagerModal";
 
 type TypeFilter = "all" | "expense" | "income";
 
@@ -45,18 +47,17 @@ export default function Dashboard() {
   const [budgets, setBudgets] = useState<Budgets>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // undefined = closed | null = add mode | Transaction = edit mode
   const [modalTarget, setModalTarget] = useState<Transaction | null | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Dashboard-wide time scope + table view controls
   const [period, setPeriod] = useState<PeriodId>("month");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [accountFilter, setAccountFilter] = useState<string | null>(null);
-  const [manualOnly, setManualOnly] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -69,9 +70,7 @@ export default function Dashboard() {
       setBudgets(buds);
       setError(null);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        return; // AuthContext handles session expiry / logout
-      }
+      if (err instanceof ApiError && err.status === 401) return;
       if (err instanceof Error && err.name === "AbortError") {
         setError("Request timed out. The backend may be waking up — please retry in a moment.");
       } else {
@@ -95,23 +94,8 @@ export default function Dashboard() {
       await api.deleteTransaction(tx.transaction_id);
       toast("Transaction deleted", "success");
     } catch {
-      setTransactions(prev); // rollback
-      toast("Could not delete transaction", "error");
-    }
-  }
-
-  async function handleRevert(tx: Transaction) {
-    const prev = transactions;
-    setTransactions((t) =>
-      t.map((x) => (x.transaction_id === tx.transaction_id ? { ...x, manual_category: null } : x))
-    );
-    try {
-      const updated = await api.updateTransaction(tx.transaction_id, { manual_category: null });
-      setTransactions((t) => t.map((x) => (x.transaction_id === updated.transaction_id ? updated : x)));
-      toast("Reverted to auto category", "success");
-    } catch {
       setTransactions(prev);
-      toast("Could not revert category", "error");
+      toast("Could not delete transaction", "error");
     }
   }
 
@@ -134,17 +118,21 @@ export default function Dashboard() {
   }
 
   function handleSort(key: SortKey) {
-    if (key === sortKey) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
+    if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
       setSortKey(key);
       setSortDir(key === "date" || key === "amount" ? "desc" : "asc");
     }
   }
 
-  // ── Keyboard shortcuts: N = add, / = search ───────────────────────────────
+  function scrollToSection(id: string) {
+    setDrawerOpen(false);
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
   const isModalOpen = modalTarget !== undefined;
-  const anyOverlayOpen = isModalOpen || !!deleteTarget || settingsOpen;
+  const anyOverlayOpen = isModalOpen || !!deleteTarget || settingsOpen || categoriesOpen || drawerOpen;
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement | null;
@@ -162,7 +150,7 @@ export default function Dashboard() {
     return () => document.removeEventListener("keydown", onKey);
   }, [anyOverlayOpen]);
 
-  // ── Period-scoped dataset → stats + charts ────────────────────────────────
+  // ── Derived data ──────────────────────────────────────────────────────────
   const periodTransactions = useMemo(() => filterByPeriod(transactions, period), [transactions, period]);
   const totals = useMemo(() => computeTotals(periodTransactions), [periodTransactions]);
   const categorySummaries = useMemo(() => expensesByCategory(periodTransactions), [periodTransactions]);
@@ -178,8 +166,17 @@ export default function Dashboard() {
     for (const tx of periodTransactions) set.add(tx.account?.trim() || "Unassigned");
     return Array.from(set).sort();
   }, [periodTransactions]);
+  const usedCategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const tx of periodTransactions) set.add(effectiveCategory(tx));
+    return Array.from(set).sort();
+  }, [periodTransactions]);
 
-  // ── Month-over-month expense trend (calendar months, for the summary) ─────
+  const recentTransactions = useMemo(
+    () => [...periodTransactions].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "")),
+    [periodTransactions]
+  );
+
   const expenseTrend = useMemo(() => {
     const thisMonth = computeTotals(currentMonthTransactions(transactions)).expenses;
     const range = periodRange("last-month");
@@ -190,7 +187,6 @@ export default function Dashboard() {
     return ((thisMonth - lastMonth) / lastMonth) * 100;
   }, [transactions]);
 
-  // ── Budgets always track the current calendar month ───────────────────────
   const monthTransactions = useMemo(() => currentMonthTransactions(transactions), [transactions]);
   const spentByCategory = useMemo(() => {
     const m: Record<string, number> = {};
@@ -202,7 +198,6 @@ export default function Dashboard() {
     return m;
   }, [monthTransactions]);
 
-  // ── Filtered + sorted view (table only) ───────────────────────────────────
   const visibleTransactions = useMemo(() => {
     const q = search.trim().toLowerCase();
     const filtered = periodTransactions.filter((tx) => {
@@ -215,7 +210,6 @@ export default function Dashboard() {
       if (categoryFilter && effectiveCategory(tx) !== categoryFilter) return false;
       if (typeFilter !== "all" && tx.type !== typeFilter) return false;
       if (accountFilter && (tx.account?.trim() || "Unassigned") !== accountFilter) return false;
-      if (manualOnly && tx.manual_category == null) return false;
       return true;
     });
     const dir = sortDir === "asc" ? 1 : -1;
@@ -232,14 +226,10 @@ export default function Dashboard() {
           return (a.date ?? "").localeCompare(b.date ?? "") * dir;
       }
     });
-  }, [periodTransactions, search, categoryFilter, typeFilter, accountFilter, manualOnly, sortKey, sortDir]);
+  }, [periodTransactions, search, categoryFilter, typeFilter, accountFilter, sortKey, sortDir]);
 
   const hasActiveFilters =
-    search.trim() !== "" ||
-    categoryFilter !== null ||
-    typeFilter !== "all" ||
-    accountFilter !== null ||
-    manualOnly;
+    search.trim() !== "" || categoryFilter !== null || typeFilter !== "all" || accountFilter !== null;
 
   const typeFilters: { id: TypeFilter; label: string }[] = [
     { id: "all", label: "All" },
@@ -247,41 +237,30 @@ export default function Dashboard() {
     { id: "income", label: "Income" },
   ];
 
-  // ── Header (shared across states) ─────────────────────────────────────────
-  const header = (
-    <header className="sticky top-0 z-40 border-b border-[var(--hairline)] bg-[var(--glass-fill-soft)] backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3.5 sm:px-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-2)] shadow-[0_8px_22px_-8px_var(--ring)]">
-            <Wallet className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-[var(--foreground)]">Cashflow</h1>
-            <p className="hidden text-xs font-medium text-[var(--muted)] sm:block">
-              Track spending, income &amp; budgets
-            </p>
-          </div>
-        </div>
+  const openAdd = () => {
+    setDrawerOpen(false);
+    setModalTarget(null);
+  };
+  const doExport = () => {
+    setDrawerOpen(false);
+    exportTransactionsCsv(visibleTransactions);
+  };
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => exportTransactionsCsv(visibleTransactions)}
-            className="nb-icon-btn hidden h-10 w-10 sm:inline-flex"
-            title="Export current view to CSV"
-            aria-label="Export CSV"
-            disabled={visibleTransactions.length === 0}
-          >
-            <Download className="h-4 w-4" />
-          </button>
-          <ThemeToggle />
-          <button onClick={() => setModalTarget(null)} className="nb-btn nb-btn-primary h-10 px-3 text-sm">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add</span>
-          </button>
-          <UserMenu onOpenSettings={() => setSettingsOpen(true)} />
-        </div>
-      </div>
-    </header>
+  const sidebar = (
+    <Sidebar
+      onAdd={openAdd}
+      onExport={doExport}
+      onOpenCategories={() => {
+        setDrawerOpen(false);
+        setCategoriesOpen(true);
+      }}
+      onOpenSettings={() => {
+        setDrawerOpen(false);
+        setSettingsOpen(true);
+      }}
+      onNavigate={scrollToSection}
+      showAccounts={showAccounts}
+    />
   );
 
   const overlays = (
@@ -299,7 +278,6 @@ export default function Dashboard() {
           />
         )}
       </AnimatePresence>
-
       <AnimatePresence>
         {deleteTarget && (
           <ConfirmDialog
@@ -312,7 +290,6 @@ export default function Dashboard() {
           />
         )}
       </AnimatePresence>
-
       <AnimatePresence>
         {settingsOpen && (
           <SettingsModal
@@ -325,101 +302,156 @@ export default function Dashboard() {
           />
         )}
       </AnimatePresence>
+      <AnimatePresence>
+        {categoriesOpen && (
+          <CategoryManagerModal onClose={() => setCategoriesOpen(false)} onMutated={fetchData} />
+        )}
+      </AnimatePresence>
+
+      {/* Mobile drawer */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <motion.div
+            className="fixed inset-0 z-[60] lg:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
+            <motion.aside
+              className="nb-card absolute inset-y-0 left-0 w-[276px] max-w-[85vw] rounded-l-none p-0"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 340, damping: 34 }}
+            >
+              {sidebar}
+            </motion.aside>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 
-  // ── Loading skeleton ──────────────────────────────────────────────────────
+  // Mobile top bar (lg:hidden)
+  const mobileHeader = (
+    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-[var(--hairline)] bg-[var(--nb-surface)] px-4 py-3 backdrop-blur-xl lg:hidden">
+      <div className="flex items-center gap-2">
+        <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" className="nb-icon-btn h-10 w-10">
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-2)]">
+            <Wallet className="h-4 w-4 text-white" />
+          </div>
+          <span className="text-base font-bold tracking-tight text-[var(--foreground)]">Cashflow</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <button onClick={openAdd} className="nb-btn nb-btn-primary h-10 px-3 text-sm">
+          <Plus className="h-4 w-4" />
+        </button>
+      </div>
+    </header>
+  );
+
+  // ── Content by state (wrapped by a single stable shell below) ─────────────
+  let content: React.ReactNode;
+
   if (loading) {
-    return (
-      <div className="min-h-screen overflow-x-clip">
-        {header}
-        <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="nb-card h-24 animate-pulse" />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="nb-card h-[360px] animate-pulse" />
-            <div className="nb-card h-[360px] animate-pulse" />
-          </div>
-          <div className="nb-card h-72 animate-pulse" />
+    content = (
+      <main className="mx-auto max-w-[1440px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="nb-card h-24 animate-pulse" />
+          ))}
         </div>
-        {overlays}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="nb-card h-[340px] animate-pulse" />
+          <div className="nb-card h-[340px] animate-pulse" />
+          <div className="nb-card hidden h-[340px] animate-pulse xl:block" />
+        </div>
+        <div className="nb-card h-72 animate-pulse" />
+      </main>
+    );
+  } else if (error && transactions.length === 0) {
+    content = (
+      <div className="flex min-h-[70vh] items-center justify-center px-4">
+        <div className="nb-card max-w-md p-6 text-center">
+          <p className="text-lg font-bold text-[var(--neg)]">Failed to load data</p>
+          <p className="mt-1 text-sm font-medium text-[var(--muted)]">{error}</p>
+          <p className="mt-3 text-xs font-medium text-[var(--muted)]">
+            Make sure the backend is running at{" "}
+            <code className="rounded-md bg-[var(--surface-2)] px-1 py-0.5">{BASE_URL}</code>
+          </p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              setError(null);
+              fetchData();
+            }}
+            className="nb-btn nb-btn-primary mt-4 px-4 py-2 text-sm"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
-  }
-
-  // ── Fatal load error ──────────────────────────────────────────────────────
-  if (error && transactions.length === 0) {
-    return (
-      <div className="min-h-screen overflow-x-clip">
-        {header}
-        <div className="flex min-h-[70vh] items-center justify-center px-4">
-          <div className="nb-card max-w-md p-6 text-center">
-            <p className="text-lg font-bold text-[var(--neg)]">Failed to load data</p>
-            <p className="mt-1 text-sm font-medium text-[var(--muted)]">{error}</p>
-            <p className="mt-3 text-xs font-medium text-[var(--muted)]">
-              Make sure the backend is running at{" "}
-              <code className="rounded-md border border-[var(--hairline)] bg-[var(--surface-2)] px-1 py-0.5">
-                {BASE_URL}
-              </code>
-            </p>
-            <button
-              onClick={() => {
-                setLoading(true);
-                setError(null);
-                fetchData();
-              }}
-              className="nb-btn nb-btn-primary mt-4 px-4 py-2 text-sm"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-        {overlays}
-      </div>
-    );
-  }
-
-  // ── Dashboard ─────────────────────────────────────────────────────────────
-  return (
-    // overflow-x-clip: no single value can ever make the whole page scroll
-    // sideways; wide content (the table) scrolls inside its own container.
-    <div className="min-h-screen overflow-x-clip">
-      {header}
-
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
+  } else {
+    content = (
+      <main className="mx-auto max-w-[1440px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         {transactions.length === 0 ? (
           <EmptyState onAdd={() => setModalTarget(null)} />
         ) : (
           <>
-            {/* Period scope */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <PeriodFilter value={period} onChange={setPeriod} />
-              <span className="text-xs font-semibold text-[var(--muted)]">
-                {periodTransactions.length} transaction{periodTransactions.length === 1 ? "" : "s"}
-              </span>
+            {/* Overview header */}
+            <div id="overview" className="flex flex-wrap items-center justify-between gap-3 scroll-mt-20">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Overview</h1>
+                <p className="text-sm text-[var(--muted)]">
+                  {periodTransactions.length} transaction{periodTransactions.length === 1 ? "" : "s"} in view
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <PeriodFilter value={period} onChange={setPeriod} />
+                <button onClick={() => setModalTarget(null)} className="nb-btn nb-btn-primary hidden h-10 px-4 text-sm sm:inline-flex">
+                  <Plus className="h-4 w-4" />
+                  Add
+                </button>
+              </div>
             </div>
 
             <SummaryCard totals={totals} topCategory={topCategory} expenseTrend={expenseTrend} />
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Charts + insights */}
+            <div id="spending" className="grid grid-cols-1 gap-6 scroll-mt-20 lg:grid-cols-2 xl:grid-cols-3">
               <CategoryChart data={categorySummaries} activeCategory={categoryFilter} onSelect={setCategoryFilter} />
               <CashflowChart transactions={periodTransactions} />
+              <div className="lg:col-span-2 xl:col-span-1">
+                <InsightsPanel totals={totals} summaries={categorySummaries} recent={recentTransactions} />
+              </div>
             </div>
 
-            {showAccounts && <AccountsPanel accounts={accountSummaries} />}
+            {/* Accounts + budgets */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {showAccounts && (
+                <div id="accounts" className="scroll-mt-20">
+                  <AccountsPanel accounts={accountSummaries} />
+                </div>
+              )}
+              <div id="budgets" className={`scroll-mt-20 ${showAccounts ? "" : "lg:col-span-2"}`}>
+                <BudgetPanel
+                  monthLabel={currentMonthLabel()}
+                  spentByCategory={spentByCategory}
+                  budgets={budgets}
+                  onSetBudget={handleSetBudget}
+                />
+              </div>
+            </div>
 
-            <BudgetPanel
-              monthLabel={currentMonthLabel()}
-              spentByCategory={spentByCategory}
-              budgets={budgets}
-              onSetBudget={handleSetBudget}
-            />
-
-            {/* Transactions card */}
-            <div className="nb-card overflow-hidden p-0">
+            {/* Transactions */}
+            <div id="transactions" className="nb-card overflow-hidden p-0 scroll-mt-20">
               <div className="flex flex-col gap-3 border-b border-[var(--hairline)] p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-baseline gap-2">
                   <h2 className="text-base font-bold tracking-tight text-[var(--foreground)]">Transactions</h2>
@@ -431,13 +463,12 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* Type filter */}
                   <div className="nb-card-flat inline-flex items-center gap-0.5 p-0.5">
                     {typeFilters.map((t) => (
                       <button
                         key={t.id}
                         onClick={() => setTypeFilter(t.id)}
-                        className={`rounded-[8px] px-2.5 py-1 text-xs font-semibold transition-colors ${
+                        className={`rounded-[9px] px-2.5 py-1 text-xs font-semibold transition-colors ${
                           typeFilter === t.id
                             ? "bg-gradient-to-br from-[var(--primary)] to-[var(--primary-2)] text-white"
                             : "text-[var(--muted)] hover:text-[var(--foreground)]"
@@ -447,6 +478,22 @@ export default function Dashboard() {
                       </button>
                     ))}
                   </div>
+
+                  {usedCategories.length > 1 && (
+                    <select
+                      value={categoryFilter ?? ""}
+                      onChange={(e) => setCategoryFilter(e.target.value || null)}
+                      className="nb-input h-9 w-auto py-1 text-xs"
+                      aria-label="Filter by category"
+                    >
+                      <option value="">All categories</option>
+                      {usedCategories.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  )}
 
                   {showAccounts && usedAccounts.length > 1 && (
                     <select
@@ -471,22 +518,13 @@ export default function Dashboard() {
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search…  ( / )"
-                      className="nb-input h-9 w-40 py-1.5 pl-8 text-sm"
+                      className="nb-input h-9 w-36 py-1.5 pl-8 text-sm sm:w-44"
                     />
                   </div>
-                  <button
-                    onClick={() => setManualOnly((m) => !m)}
-                    className={`nb-btn h-9 px-3 text-xs ${manualOnly ? "nb-btn-primary" : ""}`}
-                    title="Show only rows where you set the category"
-                  >
-                    <SlidersHorizontal className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Manual only</span>
-                  </button>
                 </div>
               </div>
 
-              {/* Active filter chips */}
-              {(categoryFilter || manualOnly || typeFilter !== "all" || accountFilter) && (
+              {hasActiveFilters && (
                 <div className="flex flex-wrap items-center gap-2 border-b border-[var(--hairline)] px-4 py-2.5">
                   <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Filters:</span>
                   {categoryFilter && (
@@ -507,9 +545,9 @@ export default function Dashboard() {
                       <X className="h-3 w-3" />
                     </button>
                   )}
-                  {manualOnly && (
-                    <button onClick={() => setManualOnly(false)} className="nb-badge">
-                      Manual only
+                  {search.trim() && (
+                    <button onClick={() => setSearch("")} className="nb-badge">
+                      “{search.trim()}”
                       <X className="h-3 w-3" />
                     </button>
                   )}
@@ -524,13 +562,24 @@ export default function Dashboard() {
                 onSort={handleSort}
                 onEdit={(tx) => setModalTarget(tx)}
                 onDelete={(tx) => setDeleteTarget(tx)}
-                onRevert={handleRevert}
               />
             </div>
           </>
         )}
       </main>
+    );
+  }
 
+  // ── Single stable shell (structure never remounts across states) ──────────
+  return (
+    <div className="min-h-screen lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto lg:block">
+        {sidebar}
+      </aside>
+      <div className="min-w-0 flex-1 overflow-x-clip">
+        {mobileHeader}
+        {content}
+      </div>
       {overlays}
     </div>
   );

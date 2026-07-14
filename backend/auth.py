@@ -25,12 +25,17 @@ import hmac
 import json
 import os
 import secrets
+import threading
 import time
 from pathlib import Path
 
 _PBKDF2_ITERATIONS = 240_000
 _TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30  # 30 days
 _SECRET_FILE = Path(__file__).parent / ".secret_key"
+
+# Password policy
+PASSWORD_MIN = 8
+PASSWORD_MAX = 128
 
 
 def _load_secret() -> bytes:
@@ -77,6 +82,72 @@ def verify_password(password: str, stored: str) -> bool:
         return False
     dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
     return hmac.compare_digest(dk, expected)
+
+
+def validate_password(password: str) -> str | None:
+    """Return an error message if the password is too weak, else None.
+
+    Requires a reasonable length plus a mix of letters and numbers so accounts
+    aren't protected by trivially guessable secrets.
+    """
+    if not password or len(password) < PASSWORD_MIN:
+        return f"Password must be at least {PASSWORD_MIN} characters."
+    if len(password) > PASSWORD_MAX:
+        return f"Password must be at most {PASSWORD_MAX} characters."
+    if not any(c.isalpha() for c in password):
+        return "Password must include at least one letter."
+    if not any(c.isdigit() for c in password):
+        return "Password must include at least one number."
+    if len(set(password)) < 4:
+        return "Password is too repetitive — mix in more characters."
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Brute-force protection (in-memory sliding window per identifier)
+# ---------------------------------------------------------------------------
+
+class LoginThrottle:
+    """Locks out an identifier after too many failures inside a time window.
+
+    Thread-safe: FastAPI runs sync endpoints in a worker threadpool, so the
+    shared failure map needs a lock. State is per-process and in-memory — plenty
+    for a single-service deployment; a multi-instance deployment would swap this
+    for a shared store.
+    """
+
+    def __init__(self, max_attempts: int = 5, window_seconds: int = 900) -> None:
+        self.max_attempts = max_attempts
+        self.window = window_seconds
+        self._fails: dict[str, list[float]] = {}
+        self._lock = threading.Lock()
+
+    def _prune(self, key: str, now: float) -> list[float]:
+        arr = [t for t in self._fails.get(key, ()) if now - t < self.window]
+        if arr:
+            self._fails[key] = arr
+        else:
+            self._fails.pop(key, None)
+        return arr
+
+    def seconds_until_unlocked(self, key: str) -> int:
+        now = time.time()
+        with self._lock:
+            arr = self._prune(key, now)
+            if len(arr) >= self.max_attempts:
+                return max(0, int(arr[0] + self.window - now))
+            return 0
+
+    def record_failure(self, key: str) -> None:
+        now = time.time()
+        with self._lock:
+            arr = self._prune(key, now)
+            arr.append(now)
+            self._fails[key] = arr
+
+    def reset(self, key: str) -> None:
+        with self._lock:
+            self._fails.pop(key, None)
 
 
 # ---------------------------------------------------------------------------

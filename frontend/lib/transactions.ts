@@ -1,8 +1,8 @@
 import type { CategorySummary, Transaction } from "@/types";
 
-/** The category the user actually sees: their override, else the auto suggestion. */
+/** The category the user chose (falls back to "Uncategorized"). */
 export function effectiveCategory(tx: Transaction): string {
-  return tx.manual_category ?? tx.category ?? "Other";
+  return tx.category || "Uncategorized";
 }
 
 /** Signed amount: negative for expenses, positive for income. */
