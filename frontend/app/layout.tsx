@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
-import { SettingsProvider } from "@/context/SettingsContext";
+import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/components/Toast";
 
 const geistSans = Geist({
@@ -16,8 +16,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cashflow — Personal Finance Tracker",
-  description: "Track your spending, income, and budgets with automatic categorisation.",
+  title: "Cashflow — Personal Finance, Beautifully Clear",
+  description:
+    "A private ledger for your income, expenses and budgets — with automatic categorisation, in liquid glass.",
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#e9ecf6" },
+    { media: "(prefers-color-scheme: dark)", color: "#07070c" },
+  ],
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -33,9 +43,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <SettingsProvider>
-            <ToastProvider>{children}</ToastProvider>
-          </SettingsProvider>
+          <ToastProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

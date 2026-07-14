@@ -117,7 +117,7 @@ export default function BudgetPanel({ monthLabel, spentByCategory, budgets, onSe
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">
                     <span
-                      className="h-3 w-3 shrink-0 rounded-full border-2 border-[var(--nb-ink)]"
+                      className="h-3 w-3 shrink-0 rounded-full ring-2 ring-[var(--hairline)]"
                       style={{ backgroundColor: categoryColor(category) }}
                     />
                     <span className="truncate text-sm font-bold text-[var(--foreground)]">{category}</span>
@@ -165,7 +165,7 @@ export default function BudgetPanel({ monthLabel, spentByCategory, budgets, onSe
 
                 {limit != null ? (
                   <>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full border-2 border-[var(--nb-ink)] bg-[var(--nb-surface-2)]">
+                    <div className="h-2.5 w-full overflow-hidden rounded-full border border-[var(--hairline)] bg-[var(--surface-2)]">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{ width: `${pct}%`, backgroundColor: barColor(ratio) }}
@@ -194,7 +194,7 @@ export default function BudgetPanel({ monthLabel, spentByCategory, budgets, onSe
       {/* Add-budget control */}
       {unbudgeted.length > 0 &&
         (adding ? (
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-[var(--nb-ink)]/20 pt-4">
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--hairline)] pt-4">
             <select
               value={addCategory}
               onChange={(e) => setAddCategory(e.target.value)}

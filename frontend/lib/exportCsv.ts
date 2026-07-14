@@ -10,7 +10,17 @@ function escapeCsvField(value: string): string {
 }
 
 export function exportTransactionsCsv(transactions: Transaction[]): void {
-  const header = ["Date", "Description", "Type", "Amount", "Signed Amount", "Category", "Source"];
+  const header = [
+    "Date",
+    "Description",
+    "Type",
+    "Amount",
+    "Signed Amount",
+    "Category",
+    "Source",
+    "Account",
+    "Note",
+  ];
 
   const rows = transactions.map((tx) => {
     const category = effectiveCategory(tx);
@@ -23,6 +33,8 @@ export function exportTransactionsCsv(transactions: Transaction[]): void {
       signedAmount(tx).toFixed(2),
       escapeCsvField(category),
       source,
+      escapeCsvField(tx.account ?? ""),
+      escapeCsvField(tx.note ?? ""),
     ];
   });
 

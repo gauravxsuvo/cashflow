@@ -32,6 +32,36 @@ export function computeTotals(transactions: Transaction[]): Totals {
   return { income, expenses, net, savingsRate, count: transactions.length };
 }
 
+export interface AccountSummary {
+  account: string;
+  net: number;
+  income: number;
+  expenses: number;
+  count: number;
+}
+
+/** Net (income − expenses) grouped by account, richest first. Untagged rows
+ *  are folded into an "Unassigned" bucket only when some accounts exist. */
+export function netByAccount(transactions: Transaction[]): AccountSummary[] {
+  const map = new Map<string, AccountSummary>();
+  for (const tx of transactions) {
+    const key = tx.account?.trim() || "Unassigned";
+    const amt = tx.amount ?? 0;
+    const existing = map.get(key) ?? { account: key, net: 0, income: 0, expenses: 0, count: 0 };
+    if (tx.type === "income") existing.income += amt;
+    else existing.expenses += amt;
+    existing.net = existing.income - existing.expenses;
+    existing.count += 1;
+    map.set(key, existing);
+  }
+  return Array.from(map.values()).sort((a, b) => b.net - a.net);
+}
+
+/** True when at least one transaction has an explicit account tag. */
+export function hasAccounts(transactions: Transaction[]): boolean {
+  return transactions.some((tx) => (tx.account ?? "").trim() !== "");
+}
+
 /** Expense totals grouped by effective category, largest first. */
 export function expensesByCategory(transactions: Transaction[]): CategorySummary[] {
   const map = new Map<string, CategorySummary>();

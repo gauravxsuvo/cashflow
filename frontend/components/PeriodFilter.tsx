@@ -16,10 +16,10 @@ export default function PeriodFilter({ value, onChange }: PeriodFilterProps) {
           <button
             key={opt.id}
             onClick={() => onChange(opt.id)}
-            className={`whitespace-nowrap rounded-[7px] px-3 py-1.5 text-xs font-bold transition-colors ${
+            className={`whitespace-nowrap rounded-[10px] px-3 py-1.5 text-xs font-semibold transition-colors ${
               active
-                ? "bg-[var(--nb-primary)] text-white"
-                : "text-[var(--nb-muted)] hover:bg-[var(--nb-surface-2)] hover:text-[var(--foreground)]"
+                ? "bg-gradient-to-br from-[var(--primary)] to-[var(--primary-2)] text-white shadow-[0_6px_16px_-8px_var(--ring)]"
+                : "text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
             }`}
           >
             {opt.label}

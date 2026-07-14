@@ -6,11 +6,13 @@ import { ArrowDownRight, ArrowUpRight, X } from "lucide-react";
 import type { Transaction, TransactionType } from "@/types";
 import { api } from "@/lib/api";
 import { categoriesForType } from "@/lib/categories";
+import { ACCOUNT_PRESETS } from "@/lib/accounts";
 import DatePicker from "@/components/DatePicker";
 import CategorySelect from "@/components/CategorySelect";
 
 interface TransactionModalProps {
   transaction?: Transaction; // undefined = add mode, populated = edit mode
+  knownAccounts?: string[];
   onClose: () => void;
   onSuccess: (message: string) => void;
 }
@@ -21,6 +23,8 @@ interface ModalForm {
   amount: string; // kept as string so the field can be cleared while typing
   type: TransactionType;
   manual_category: string | null;
+  account: string;
+  note: string;
 }
 
 function todayIso(): string {
@@ -28,16 +32,20 @@ function todayIso(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export default function TransactionModal({ transaction, onClose, onSuccess }: TransactionModalProps) {
+const emptyForm = (): ModalForm => ({
+  date: todayIso(),
+  vendor: "",
+  amount: "",
+  type: "expense",
+  manual_category: null,
+  account: "",
+  note: "",
+});
+
+export default function TransactionModal({ transaction, knownAccounts = [], onClose, onSuccess }: TransactionModalProps) {
   const isEdit = !!transaction;
 
-  const [form, setForm] = useState<ModalForm>(() => ({
-    date: todayIso(),
-    vendor: "",
-    amount: "",
-    type: "expense",
-    manual_category: null,
-  }));
+  const [form, setForm] = useState<ModalForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const vendorRef = useRef<HTMLInputElement>(null);
@@ -50,14 +58,15 @@ export default function TransactionModal({ transaction, onClose, onSuccess }: Tr
         amount: transaction.amount != null ? String(transaction.amount) : "",
         type: transaction.type,
         manual_category: transaction.manual_category ?? null,
+        account: transaction.account ?? "",
+        note: transaction.note ?? "",
       });
     } else {
-      setForm({ date: todayIso(), vendor: "", amount: "", type: "expense", manual_category: null });
+      setForm(emptyForm());
     }
     setError(null);
   }, [transaction, isEdit]);
 
-  // Esc closes the modal.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -66,14 +75,13 @@ export default function TransactionModal({ transaction, onClose, onSuccess }: Tr
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  function handleTextChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleTextChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
   function setType(type: TransactionType) {
     setForm((prev) => {
-      // Drop the manual category if it isn't valid for the new type.
       const valid = categoriesForType(type).includes(prev.manual_category ?? "");
       return { ...prev, type, manual_category: valid ? prev.manual_category : null };
     });
@@ -93,6 +101,9 @@ export default function TransactionModal({ transaction, onClose, onSuccess }: Tr
     setSubmitting(true);
     setError(null);
 
+    const account = form.account.trim() || null;
+    const note = form.note.trim() || null;
+
     try {
       if (isEdit && transaction) {
         await api.updateTransaction(transaction.transaction_id, {
@@ -101,6 +112,8 @@ export default function TransactionModal({ transaction, onClose, onSuccess }: Tr
           amount: amountNum,
           type: form.type,
           manual_category: form.manual_category, // null clears the override
+          account,
+          note,
         });
       } else {
         await api.createTransaction({
@@ -109,6 +122,8 @@ export default function TransactionModal({ transaction, onClose, onSuccess }: Tr
           amount: amountNum,
           type: form.type,
           ...(form.manual_category !== null && { manual_category: form.manual_category }),
+          ...(account && { account }),
+          ...(note && { note }),
         });
       }
       onSuccess(isEdit ? "Transaction updated" : "Transaction added");
@@ -120,26 +135,27 @@ export default function TransactionModal({ transaction, onClose, onSuccess }: Tr
     }
   }
 
-  const labelClass = "mb-1.5 block text-xs font-bold uppercase tracking-wider text-[var(--nb-muted)]";
+  const labelClass = "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--muted)]";
   const isIncome = form.type === "income";
+  const accountOptions = Array.from(new Set([...ACCOUNT_PRESETS, ...knownAccounts]));
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm sm:items-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
-        className="nb-card w-full max-w-md p-0"
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        className="nb-card my-auto w-full max-w-md p-0"
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        exit={{ opacity: 0, scale: 0.96, y: 12 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
       >
-        <div className="flex items-center justify-between border-b-[3px] border-[var(--nb-ink)] px-6 py-4">
-          <h2 className="text-lg font-extrabold text-[var(--foreground)]">
+        <div className="flex items-center justify-between border-b border-[var(--hairline)] px-6 py-4">
+          <h2 className="text-lg font-bold tracking-tight text-[var(--foreground)]">
             {isEdit ? "Edit Transaction" : "Add Transaction"}
           </h2>
           <button onClick={onClose} aria-label="Close" className="nb-icon-btn h-8 w-8">
@@ -161,7 +177,9 @@ export default function TransactionModal({ transaction, onClose, onSuccess }: Tr
             <button
               type="button"
               onClick={() => setType("income")}
-              className={`nb-btn py-2.5 text-sm ${isIncome ? "!bg-emerald-500 !text-white" : ""}`}
+              className={`nb-btn py-2.5 text-sm ${
+                isIncome ? "!border-transparent !bg-gradient-to-br !from-[var(--pos)] !to-emerald-600 !text-white" : ""
+              }`}
             >
               <ArrowUpRight className="h-4 w-4" />
               Income
@@ -190,24 +208,46 @@ export default function TransactionModal({ transaction, onClose, onSuccess }: Tr
             />
           </div>
 
-          <div>
-            <label className={labelClass} htmlFor="amount">
-              Amount
-            </label>
-            <input
-              id="amount"
-              type="number"
-              name="amount"
-              value={form.amount}
-              onChange={handleTextChange}
-              required
-              min={0}
-              max={1_000_000_000_000}
-              step={0.01}
-              inputMode="decimal"
-              placeholder="0.00"
-              className="nb-input tabular-nums"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass} htmlFor="amount">
+                Amount
+              </label>
+              <input
+                id="amount"
+                type="number"
+                name="amount"
+                value={form.amount}
+                onChange={handleTextChange}
+                required
+                min={0}
+                max={1_000_000_000_000}
+                step={0.01}
+                inputMode="decimal"
+                placeholder="0.00"
+                className="nb-input tabular-nums"
+              />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="account">
+                Account <span className="normal-case text-[var(--muted)]/70">(optional)</span>
+              </label>
+              <input
+                id="account"
+                type="text"
+                name="account"
+                list="account-options"
+                value={form.account}
+                onChange={handleTextChange}
+                placeholder="e.g. Checking"
+                className="nb-input"
+              />
+              <datalist id="account-options">
+                {accountOptions.map((a) => (
+                  <option key={a} value={a} />
+                ))}
+              </datalist>
+            </div>
           </div>
 
           <div>
@@ -219,8 +259,24 @@ export default function TransactionModal({ transaction, onClose, onSuccess }: Tr
             />
           </div>
 
+          <div>
+            <label className={labelClass} htmlFor="note">
+              Note <span className="normal-case text-[var(--muted)]/70">(optional)</span>
+            </label>
+            <textarea
+              id="note"
+              name="note"
+              value={form.note}
+              onChange={handleTextChange}
+              rows={2}
+              maxLength={280}
+              placeholder="Add a memo…"
+              className="nb-input resize-none"
+            />
+          </div>
+
           {error && (
-            <p className="rounded-md border-2 border-red-500 bg-red-100 px-3 py-2 text-xs font-bold text-red-700 dark:bg-red-950/50 dark:text-red-300">
+            <p className="rounded-[11px] border border-[var(--neg)]/40 bg-[var(--neg)]/10 px-3.5 py-2.5 text-xs font-semibold text-[var(--neg)]">
               {error}
             </p>
           )}

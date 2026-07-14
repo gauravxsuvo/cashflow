@@ -45,7 +45,7 @@ export default function CategorySelect({ value, options, onChange }: CategorySel
         {value ? (
           <span className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
             <span
-              className="h-3 w-3 shrink-0 rounded-full border-2 border-[var(--nb-ink)]"
+              className="h-3 w-3 shrink-0 rounded-full ring-2 ring-[var(--hairline)]"
               style={{ backgroundColor: categoryColor(value) }}
             />
             {value}
@@ -76,7 +76,7 @@ export default function CategorySelect({ value, options, onChange }: CategorySel
               </button>
             </li>
 
-            <li className="my-1 border-t-2 border-dashed border-[var(--nb-ink)]/20" />
+            <li className="my-1 border-t border-[var(--hairline)]" />
 
             {options.map((cat) => (
               <li key={cat}>
@@ -88,7 +88,7 @@ export default function CategorySelect({ value, options, onChange }: CategorySel
                   }`}
                 >
                   <span
-                    className="h-3 w-3 shrink-0 rounded-full border-2 border-[var(--nb-ink)]"
+                    className="h-3 w-3 shrink-0 rounded-full ring-2 ring-[var(--hairline)]"
                     style={{ backgroundColor: categoryColor(cat) }}
                   />
                   <span className="flex-1 text-left">{cat}</span>
@@ -99,7 +99,7 @@ export default function CategorySelect({ value, options, onChange }: CategorySel
           </ul>
 
           {value && (
-            <div className="border-t-[3px] border-[var(--nb-ink)] p-2">
+            <div className="border-t border-[var(--hairline)] p-2">
               <button
                 type="button"
                 onClick={() => select(null)}

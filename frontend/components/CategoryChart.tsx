@@ -52,7 +52,7 @@ export default function CategoryChart({ data, activeCategory, onSelect }: Catego
                   outerRadius={108}
                   paddingAngle={2}
                   dataKey="value"
-                  stroke="#0a0a0a"
+                  stroke="var(--background)"
                   strokeWidth={2.5}
                   className="cursor-pointer outline-none"
                   onClick={(_, index) => {
@@ -96,14 +96,19 @@ export default function CategoryChart({ data, activeCategory, onSelect }: Catego
             {data.map((d) => {
               const isActive = activeCategory === d.category;
               const dimmed = activeCategory && !isActive;
+              const color = categoryColor(d.category);
               return (
                 <button
                   key={d.category}
                   onClick={() => onSelect(isActive ? null : d.category)}
                   className={`nb-badge transition-opacity ${dimmed ? "opacity-40" : ""}`}
-                  style={{ backgroundColor: categoryColor(d.category) }}
+                  style={{
+                    backgroundColor: `${color}26`,
+                    borderColor: isActive ? color : `${color}66`,
+                  }}
                   title={`${formatCurrency(d.total, currency)} · ${d.count} txns`}
                 >
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
                   {d.category}
                 </button>
               );

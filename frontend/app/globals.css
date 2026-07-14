@@ -1,60 +1,100 @@
 @import "tailwindcss";
 
 /* Class-based dark mode for Tailwind v4.
-   @custom-variant *defines* a new variant; @variant only *applies* one.
    next-themes adds `.dark` to <html>, so all descendants match `.dark *`. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ========================================================================
-   NEO-BRUTALISM DESIGN TOKENS
-   Thick ink borders + hard (un-blurred) offset shadows + bold saturated
-   accents. All theme-aware: in dark mode the "ink" flips to near-white so
-   borders and shadows stay high-contrast against the dark surface.
+   GLASSMORPHISM DESIGN SYSTEM
+   Frosted, translucent surfaces over a soft aurora backdrop — the "liquid
+   glass" look: real backdrop blur + saturation, hairline light-catching
+   borders, an inset top highlight, and soft layered shadows. Fully theme
+   aware: light mode is bright and airy, dark mode is deep and luminous.
+
+   Legacy `--nb-*` token names are preserved as aliases so existing utility
+   references keep resolving after the visual overhaul.
    ======================================================================== */
 :root {
-  --background: #fdf6ec;          /* warm paper */
-  --foreground: #0a0a0a;
+  color-scheme: light;
 
-  --nb-ink: #0a0a0a;              /* borders + hard shadows */
-  --nb-surface: #ffffff;         /* card / control surface */
-  --nb-surface-2: #f4ede0;       /* recessed surface */
-  --nb-muted: #57534e;           /* secondary text */
-  --nb-dot: rgba(10, 10, 10, 0.06);
+  --background: #e9ecf6;              /* page base behind the aurora */
+  --foreground: #14161d;
+  --muted: #5a6072;
 
-  --nb-radius: 14px;
-  --nb-radius-sm: 9px;
+  /* Glass surfaces */
+  --glass-fill: rgba(255, 255, 255, 0.58);
+  --glass-fill-strong: rgba(255, 255, 255, 0.78);
+  --glass-fill-soft: rgba(255, 255, 255, 0.35);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-edge: rgba(255, 255, 255, 0.95);   /* top inner highlight */
+  --hairline: rgba(18, 22, 40, 0.09);
+  --surface-2: rgba(255, 255, 255, 0.45);
 
-  --nb-shadow-sm: 2px 2px 0 0 var(--nb-ink);
-  --nb-shadow: 4px 4px 0 0 var(--nb-ink);
-  --nb-shadow-lg: 7px 7px 0 0 var(--nb-ink);
+  --glass-blur: 22px;
+  --glass-shadow: 0 12px 40px -14px rgba(24, 28, 48, 0.35), 0 2px 8px -4px rgba(24, 28, 48, 0.15);
+  --glass-shadow-lg: 0 30px 70px -20px rgba(24, 28, 48, 0.45), 0 6px 16px -8px rgba(24, 28, 48, 0.2);
 
-  /* Brand + category accents (bright, flat) */
-  --nb-primary: #7c3aed;
-  --nb-violet: #c4b5fd;
-  --nb-cyan: #67e8f9;
-  --nb-lime: #bef264;
-  --nb-amber: #fcd34d;
-  --nb-pink: #f9a8d4;
-  --nb-zinc: #d4d4d8;
+  /* Brand */
+  --primary: #6a5cff;
+  --primary-2: #9d6bff;
+  --primary-soft: rgba(106, 92, 255, 0.14);
+  --primary-contrast: #ffffff;
+  --ring: rgba(106, 92, 255, 0.5);
+
+  /* Semantic */
+  --pos: #10b981;
+  --neg: #f43f5e;
+  --warn: #f59e0b;
+
+  --radius: 20px;
+  --radius-sm: 13px;
+  --radius-xs: 9px;
+
+  /* Aurora blobs (light) */
+  --aurora-1: rgba(120, 119, 255, 0.42);
+  --aurora-2: rgba(80, 214, 214, 0.36);
+  --aurora-3: rgba(255, 138, 205, 0.34);
+  --aurora-4: rgba(255, 205, 120, 0.30);
+
+  /* Legacy aliases → glass equivalents */
+  --nb-ink: var(--hairline);
+  --nb-surface: var(--glass-fill);
+  --nb-surface-2: var(--surface-2);
+  --nb-muted: var(--muted);
+  --nb-primary: var(--primary);
 }
 
 .dark {
-  --background: #0c0a09;
-  --foreground: #fafaf9;
+  color-scheme: dark;
 
-  --nb-ink: #fafaf9;
-  --nb-surface: #1c1917;
-  --nb-surface-2: #292524;
-  --nb-muted: #a8a29e;
-  --nb-dot: rgba(250, 250, 249, 0.06);
+  --background: #07070c;
+  --foreground: #f2f3f8;
+  --muted: #9aa0b4;
 
-  --nb-primary: #8b5cf6;
-  --nb-violet: #7c3aed;
-  --nb-cyan: #0891b2;
-  --nb-lime: #4d7c0f;
-  --nb-amber: #b45309;
-  --nb-pink: #be185d;
-  --nb-zinc: #44403c;
+  --glass-fill: rgba(30, 32, 46, 0.55);
+  --glass-fill-strong: rgba(38, 40, 58, 0.72);
+  --glass-fill-soft: rgba(30, 32, 46, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-edge: rgba(255, 255, 255, 0.22);
+  --hairline: rgba(255, 255, 255, 0.12);
+  --surface-2: rgba(255, 255, 255, 0.06);
+
+  --glass-shadow: 0 16px 48px -16px rgba(0, 0, 0, 0.7), 0 2px 10px -4px rgba(0, 0, 0, 0.5);
+  --glass-shadow-lg: 0 36px 80px -22px rgba(0, 0, 0, 0.8), 0 8px 20px -8px rgba(0, 0, 0, 0.6);
+
+  --primary: #8b7dff;
+  --primary-2: #b98bff;
+  --primary-soft: rgba(139, 125, 255, 0.2);
+  --ring: rgba(139, 125, 255, 0.55);
+
+  --pos: #34d399;
+  --neg: #fb7185;
+  --warn: #fbbf24;
+
+  --aurora-1: rgba(99, 91, 255, 0.34);
+  --aurora-2: rgba(42, 173, 173, 0.26);
+  --aurora-3: rgba(214, 79, 160, 0.28);
+  --aurora-4: rgba(120, 90, 40, 0.22);
 }
 
 @theme inline {
@@ -64,127 +104,229 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background-color: var(--background);
-  background-image: radial-gradient(var(--nb-dot) 1.25px, transparent 1.25px);
-  background-size: 22px 22px;
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Fixed aurora backdrop — the thing every glass panel blurs. Sits behind all
+   content, never scrolls, and can't create horizontal overflow. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20vmax;
+  z-index: -1;
+  background:
+    radial-gradient(38vmax 38vmax at 12% 8%, var(--aurora-1), transparent 60%),
+    radial-gradient(42vmax 42vmax at 88% 12%, var(--aurora-2), transparent 62%),
+    radial-gradient(46vmax 46vmax at 78% 88%, var(--aurora-3), transparent 60%),
+    radial-gradient(40vmax 40vmax at 18% 82%, var(--aurora-4), transparent 60%);
+  filter: saturate(120%);
+  animation: aurora-drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(2%, -1.5%, 0) scale(1.06); }
+  100% { transform: translate3d(-2%, 2%, 0) scale(1.03); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
 }
 
 /* ========================================================================
-   COMPONENT PRIMITIVES
+   GLASS PRIMITIVES  (nb-* names kept for compatibility)
    ======================================================================== */
 @layer components {
+  .glass,
   .nb-card {
-    background: var(--nb-surface);
-    border: 3px solid var(--nb-ink);
-    border-radius: var(--nb-radius);
-    box-shadow: var(--nb-shadow);
+    position: relative;
+    background: var(--glass-fill);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  }
+  /* Light-catching top edge that sells the "glass" look. */
+  .glass::before,
+  .nb-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding-top: 1px;
+    background: linear-gradient(180deg, var(--glass-edge), transparent 42%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.9;
   }
 
   .nb-card-flat {
-    background: var(--nb-surface);
-    border: 3px solid var(--nb-ink);
-    border-radius: var(--nb-radius);
+    position: relative;
+    background: var(--glass-fill-soft);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   }
 
-  /* Buttons: rest on a small shadow, lift on hover, press flat on click. */
+  /* Buttons */
   .nb-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border: 2.5px solid var(--nb-ink);
-    border-radius: var(--nb-radius-sm);
-    background: var(--nb-surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: var(--glass-fill);
     color: var(--foreground);
-    font-weight: 700;
-    box-shadow: var(--nb-shadow-sm);
+    font-weight: 600;
+    box-shadow: 0 4px 14px -6px rgba(20, 24, 40, 0.25);
     cursor: pointer;
-    transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.12s ease;
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    backdrop-filter: blur(12px) saturate(150%);
+    transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.16s ease,
+      background-color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
     user-select: none;
   }
   .nb-btn:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--nb-shadow);
+    transform: translateY(-1px);
+    background: var(--glass-fill-strong);
+    box-shadow: 0 10px 24px -8px rgba(20, 24, 40, 0.35);
   }
   .nb-btn:active {
-    transform: translate(0, 0);
-    box-shadow: 1px 1px 0 0 var(--nb-ink);
+    transform: translateY(0);
+    box-shadow: 0 3px 10px -6px rgba(20, 24, 40, 0.3);
   }
   .nb-btn:disabled {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: not-allowed;
     transform: none;
-    box-shadow: var(--nb-shadow-sm);
   }
   .nb-btn-primary {
-    background: var(--nb-primary);
-    color: #ffffff;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    border-color: transparent;
+    color: var(--primary-contrast);
+    box-shadow: 0 8px 22px -8px var(--ring), 0 1px 0 0 rgba(255, 255, 255, 0.25) inset;
+  }
+  .nb-btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    filter: brightness(1.07);
+    box-shadow: 0 14px 32px -8px var(--ring), 0 1px 0 0 rgba(255, 255, 255, 0.3) inset;
   }
   .nb-btn-danger {
-    background: #ef4444;
-    color: #ffffff;
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 8px 22px -8px rgba(244, 63, 94, 0.5);
+  }
+  .nb-btn-danger:hover {
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    filter: brightness(1.06);
   }
 
-  /* Square icon button */
+  /* Square/pill icon button */
   .nb-icon-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 2.5px solid var(--nb-ink);
-    border-radius: var(--nb-radius-sm);
-    background: var(--nb-surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xs);
+    background: var(--glass-fill);
     color: var(--foreground);
-    box-shadow: var(--nb-shadow-sm);
+    box-shadow: 0 4px 14px -6px rgba(20, 24, 40, 0.22);
     cursor: pointer;
-    transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.12s ease;
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    backdrop-filter: blur(12px) saturate(150%);
+    transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.16s ease,
+      background-color 0.16s ease, color 0.16s ease;
   }
   .nb-icon-btn:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--nb-shadow);
+    transform: translateY(-1px);
+    background: var(--glass-fill-strong);
+    box-shadow: 0 10px 22px -8px rgba(20, 24, 40, 0.3);
   }
   .nb-icon-btn:active {
-    transform: translate(0, 0);
-    box-shadow: 1px 1px 0 0 var(--nb-ink);
+    transform: translateY(0);
   }
 
+  /* Inputs */
   .nb-input {
     width: 100%;
-    border: 2.5px solid var(--nb-ink);
-    border-radius: var(--nb-radius-sm);
-    background: var(--nb-surface);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xs);
+    background: var(--glass-fill-soft);
     color: var(--foreground);
-    padding: 0.5rem 0.75rem;
+    padding: 0.6rem 0.8rem;
     outline: none;
-    transition: box-shadow 0.08s ease, transform 0.08s ease;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
   }
   .nb-input::placeholder {
-    color: var(--nb-muted);
-    opacity: 0.7;
+    color: var(--muted);
+    opacity: 0.75;
   }
   .nb-input:focus {
-    box-shadow: var(--nb-shadow-sm);
-    transform: translate(-1px, -1px);
+    border-color: var(--primary);
+    background: var(--glass-fill);
+    box-shadow: 0 0 0 3.5px var(--ring);
+  }
+  select.nb-input option {
+    color: #14161d;
   }
 
+  /* Chips / badges — translucent glass, tinted per category via inline color */
   .nb-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    border: 2px solid var(--nb-ink);
+    gap: 0.3rem;
+    border: 1px solid var(--glass-border);
     border-radius: 999px;
-    padding: 0.1rem 0.55rem;
-    font-weight: 700;
+    padding: 0.16rem 0.6rem;
+    font-weight: 600;
     font-size: 0.72rem;
-    line-height: 1.2;
-    color: #0a0a0a; /* badges sit on bright fills → always dark text */
+    line-height: 1.25;
+    color: var(--foreground);
+    background: var(--glass-fill-soft);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
   }
 }
 
-/* Recharts legend/active outlines off — we style our own */
+/* Recharts: kill default focus outlines — we style our own */
 .recharts-surface:focus,
 .recharts-wrapper:focus {
   outline: none;
+}
+
+/* Custom scrollbars that fit the glass aesthetic */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hairline) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted) 40%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
+  background-clip: content-box;
 }

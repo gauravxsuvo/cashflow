@@ -22,8 +22,8 @@ interface CashflowChartProps {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const INCOME_FILL = "#22c55e";
-const EXPENSE_FILL = "#7c3aed";
+const INCOME_FILL = "#10b981";
+const EXPENSE_FILL = "#6a5cff";
 
 export default function CashflowChart({ transactions }: CashflowChartProps) {
   const { currency } = useSettings();
@@ -107,8 +107,8 @@ export default function CashflowChart({ transactions }: CashflowChartProps) {
                 <span className="text-[var(--nb-muted)]">{value === "income" ? "Income" : "Expenses"}</span>
               )}
             />
-            <Bar dataKey="income" fill={INCOME_FILL} stroke="#0a0a0a" strokeWidth={2} radius={[5, 5, 0, 0]} maxBarSize={34} />
-            <Bar dataKey="expense" fill={EXPENSE_FILL} stroke="#0a0a0a" strokeWidth={2} radius={[5, 5, 0, 0]} maxBarSize={34} />
+            <Bar dataKey="income" fill={INCOME_FILL} radius={[6, 6, 0, 0]} maxBarSize={34} />
+            <Bar dataKey="expense" fill={EXPENSE_FILL} radius={[6, 6, 0, 0]} maxBarSize={34} />
           </BarChart>
         </ResponsiveContainer>
       )}

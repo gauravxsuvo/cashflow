@@ -5,12 +5,12 @@ import { Plus, Wallet } from "lucide-react";
 export default function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="nb-card flex flex-col items-center justify-center gap-5 px-6 py-16 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-[14px] border-[3px] border-[var(--nb-ink)] bg-[#bef264] text-black shadow-[3px_3px_0_0_var(--nb-ink)]">
+      <div className="flex h-16 w-16 items-center justify-center rounded-[18px] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-2)] text-white shadow-[0_14px_36px_-10px_var(--ring)]">
         <Wallet className="h-8 w-8" />
       </div>
       <div>
-        <h3 className="text-xl font-extrabold text-[var(--foreground)]">Start tracking your money</h3>
-        <p className="mx-auto mt-1.5 max-w-sm text-sm font-semibold text-[var(--nb-muted)]">
+        <h3 className="text-xl font-bold tracking-tight text-[var(--foreground)]">Start tracking your money</h3>
+        <p className="mx-auto mt-1.5 max-w-sm text-sm font-medium text-[var(--muted)]">
           Add an income or expense and Cashflow will sort it into a category, track your net balance,
           and keep your budgets up to date automatically.
         </p>

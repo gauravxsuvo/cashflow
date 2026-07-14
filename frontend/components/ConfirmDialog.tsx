@@ -33,7 +33,7 @@ export default function ConfirmDialog({
 
   return (
     <motion.div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 px-4"
+      className="fixed inset-0 z-[95] flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -49,15 +49,15 @@ export default function ConfirmDialog({
         transition={{ duration: 0.16, ease: "easeOut" }}
       >
         <div className="flex items-start gap-3 p-5">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[9px] border-2 border-[var(--nb-ink)] bg-red-400 text-black">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--neg)]/15 text-[var(--neg)]">
             <AlertTriangle className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <h2 className="text-base font-extrabold text-[var(--foreground)]">{title}</h2>
-            <p className="mt-1 text-sm text-[var(--nb-muted)]">{message}</p>
+            <h2 className="text-base font-bold tracking-tight text-[var(--foreground)]">{title}</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">{message}</p>
           </div>
         </div>
-        <div className="flex justify-end gap-2 border-t-[3px] border-[var(--nb-ink)] bg-[var(--nb-surface-2)] p-3">
+        <div className="flex justify-end gap-2 border-t border-[var(--hairline)] bg-[var(--surface-2)] p-3">
           <button onClick={onCancel} className="nb-btn px-4 py-2 text-sm">
             {cancelLabel}
           </button>

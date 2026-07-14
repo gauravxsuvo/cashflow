@@ -29,6 +29,7 @@ backend/data/*.csv
 .env
 .env.local
 .env.*.local
+backend/.secret_key
 
 # --- OS / IDE ---
 .DS_Store

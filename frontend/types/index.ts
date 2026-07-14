@@ -6,6 +6,10 @@ export interface Transaction {
   vendor: string | null;
   amount: number | null;
   type: TransactionType;
+  /** Optional account/wallet this belongs to (e.g. "Checking", "Cash"). */
+  account: string | null;
+  /** Optional free-text memo. */
+  note: string | null;
   /** Auto-suggested category from the backend keyword rules. */
   category: string;
   /** User override; when set it wins over `category`. */
@@ -27,6 +31,8 @@ export interface TransactionCreate {
   amount: number;
   type: TransactionType;
   manual_category?: string | null;
+  account?: string | null;
+  note?: string | null;
 }
 
 export interface TransactionUpdate {
@@ -35,4 +41,18 @@ export interface TransactionUpdate {
   amount?: number;
   type?: TransactionType;
   manual_category?: string | null;
+  account?: string | null;
+  note?: string | null;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  currency: string;
+  created_at: string | null;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
 }

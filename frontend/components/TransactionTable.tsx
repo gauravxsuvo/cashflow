@@ -13,6 +13,7 @@ export type SortDir = "asc" | "desc";
 
 interface TransactionTableProps {
   transactions: Transaction[];
+  showAccounts: boolean;
   sortKey: SortKey;
   sortDir: SortDir;
   onSort: (key: SortKey) => void;
@@ -22,13 +23,15 @@ interface TransactionTableProps {
 }
 
 function CategoryBadge({ name, isManual }: { name: string; isManual: boolean }) {
+  const color = categoryColor(name);
   return (
     <span
       className="nb-badge"
-      style={{ backgroundColor: categoryColor(name) }}
+      style={{ backgroundColor: `${color}26`, borderColor: `${color}66` }}
       title={isManual ? "You set this category" : "Auto-categorised"}
     >
-      {isManual ? <Pin className="h-2.5 w-2.5 shrink-0" /> : <Sparkles className="h-2.5 w-2.5 shrink-0" />}
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+      {isManual ? <Pin className="h-2.5 w-2.5 shrink-0 opacity-70" /> : <Sparkles className="h-2.5 w-2.5 shrink-0 opacity-70" />}
       {name}
     </span>
   );
@@ -55,8 +58,8 @@ function SortHeader({
     <th className={`px-5 py-3 ${align === "right" ? "text-right" : "text-left"}`}>
       <button
         onClick={() => onSort(column)}
-        className={`inline-flex items-center gap-1.5 text-[0.7rem] font-extrabold uppercase tracking-wider transition-colors ${
-          active ? "text-[var(--foreground)]" : "text-[var(--nb-muted)] hover:text-[var(--foreground)]"
+        className={`inline-flex items-center gap-1.5 text-[0.7rem] font-bold uppercase tracking-wide transition-colors ${
+          active ? "text-[var(--foreground)]" : "text-[var(--muted)] hover:text-[var(--foreground)]"
         } ${align === "right" ? "flex-row-reverse" : ""}`}
       >
         {label}
@@ -71,12 +74,13 @@ const rowVariants = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.18, delay: Math.min(i, 20) * 0.025 },
+    transition: { duration: 0.18, delay: Math.min(i, 20) * 0.02 },
   }),
 };
 
 export default function TransactionTable({
   transactions,
+  showAccounts,
   sortKey,
   sortDir,
   onSort,
@@ -85,14 +89,20 @@ export default function TransactionTable({
   onRevert,
 }: TransactionTableProps) {
   const { currency } = useSettings();
+  const colSpan = showAccounts ? 6 : 5;
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="border-b-[3px] border-[var(--nb-ink)] bg-[var(--nb-surface-2)]">
+          <tr className="border-b border-[var(--hairline)] bg-[var(--surface-2)]">
             <SortHeader label="Date" column="date" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <SortHeader label="Description" column="vendor" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+            {showAccounts && (
+              <th className="px-5 py-3 text-left text-[0.7rem] font-bold uppercase tracking-wide text-[var(--muted)]">
+                Account
+              </th>
+            )}
             <SortHeader label="Amount" column="amount" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
             <SortHeader label="Category" column="category" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <th className="px-5 py-3" />
@@ -101,7 +111,7 @@ export default function TransactionTable({
         <tbody>
           {transactions.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-5 py-12 text-center text-sm font-semibold text-[var(--nb-muted)]">
+              <td colSpan={colSpan} className="px-5 py-12 text-center text-sm font-medium text-[var(--muted)]">
                 No transactions match your filters.
               </td>
             </tr>
@@ -110,6 +120,7 @@ export default function TransactionTable({
             const displayCategory = effectiveCategory(tx);
             const isManual = tx.manual_category != null;
             const isIncome = tx.type === "income";
+            const note = tx.note?.trim();
             return (
               <motion.tr
                 key={tx.transaction_id}
@@ -117,17 +128,33 @@ export default function TransactionTable({
                 variants={rowVariants}
                 initial="hidden"
                 animate="visible"
-                className="border-b-2 border-dashed border-[var(--nb-ink)]/15 transition-colors last:border-0 hover:bg-[var(--nb-surface-2)]"
+                className="border-b border-[var(--hairline)] transition-colors last:border-0 hover:bg-[var(--surface-2)]"
               >
-                <td className="whitespace-nowrap px-5 py-3 font-semibold text-[var(--nb-muted)]">
+                <td className="whitespace-nowrap px-5 py-3 align-top font-medium text-[var(--muted)]">
                   {tx.date ?? <span className="italic">—</span>}
                 </td>
-                <td className="whitespace-nowrap px-5 py-3 font-bold text-[var(--foreground)]">
-                  {tx.vendor ?? <span className="italic text-[var(--nb-muted)]">Unknown</span>}
+                <td className="px-5 py-3 align-top">
+                  <div className="font-semibold text-[var(--foreground)]">
+                    {tx.vendor ?? <span className="italic text-[var(--muted)]">Unknown</span>}
+                  </div>
+                  {note && (
+                    <div className="mt-0.5 max-w-[16rem] truncate text-xs font-normal text-[var(--muted)]" title={note}>
+                      {note}
+                    </div>
+                  )}
                 </td>
+                {showAccounts && (
+                  <td className="whitespace-nowrap px-5 py-3 align-top">
+                    {tx.account ? (
+                      <span className="nb-badge">{tx.account}</span>
+                    ) : (
+                      <span className="text-xs text-[var(--muted)]">—</span>
+                    )}
+                  </td>
+                )}
                 <td
-                  className={`whitespace-nowrap px-5 py-3 text-right font-extrabold tabular-nums ${
-                    isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--foreground)]"
+                  className={`whitespace-nowrap px-5 py-3 text-right align-top font-bold tabular-nums ${
+                    isIncome ? "text-[var(--pos)]" : "text-[var(--foreground)]"
                   }`}
                 >
                   {tx.amount != null ? (
@@ -136,13 +163,13 @@ export default function TransactionTable({
                       {formatCurrency(tx.amount, currency)}
                     </>
                   ) : (
-                    <span className="italic text-[var(--nb-muted)]">—</span>
+                    <span className="italic text-[var(--muted)]">—</span>
                   )}
                 </td>
-                <td className="px-5 py-3">
+                <td className="px-5 py-3 align-top">
                   <CategoryBadge name={displayCategory} isManual={isManual} />
                 </td>
-                <td className="px-5 py-3">
+                <td className="px-5 py-3 align-top">
                   <div className="flex items-center justify-end gap-1.5">
                     {isManual && (
                       <button
@@ -164,7 +191,7 @@ export default function TransactionTable({
                     </button>
                     <button
                       onClick={() => onDelete(tx)}
-                      className="nb-icon-btn h-8 w-8 hover:bg-red-400"
+                      className="nb-icon-btn h-8 w-8 hover:!text-[var(--neg)]"
                       aria-label="Delete transaction"
                       title="Delete"
                     >

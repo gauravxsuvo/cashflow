@@ -15,11 +15,11 @@ const DPC = {
   caption_label: "text-sm font-extrabold text-[var(--foreground)]",
   nav: "absolute inset-x-0 flex items-center justify-between pointer-events-none",
   button_previous:
-    "pointer-events-auto flex h-8 w-8 items-center justify-center rounded-md border-2 border-[var(--nb-ink)] " +
-    "text-[var(--foreground)] transition-colors hover:bg-[var(--nb-surface-2)] focus:outline-none",
+    "pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--hairline)] " +
+    "text-[var(--foreground)] transition-colors hover:bg-[var(--surface-2)] focus:outline-none",
   button_next:
-    "pointer-events-auto flex h-8 w-8 items-center justify-center rounded-md border-2 border-[var(--nb-ink)] " +
-    "text-[var(--foreground)] transition-colors hover:bg-[var(--nb-surface-2)] focus:outline-none",
+    "pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--hairline)] " +
+    "text-[var(--foreground)] transition-colors hover:bg-[var(--surface-2)] focus:outline-none",
   month_grid: "w-full border-collapse",
   weekdays: "",
   weekday: "text-xs font-bold text-[var(--nb-muted)] pb-2 text-center w-9",
@@ -28,8 +28,9 @@ const DPC = {
   day_button:
     "h-9 w-9 rounded-md text-sm font-bold text-[var(--foreground)] transition-all duration-100 " +
     "focus:outline-none hover:bg-[var(--nb-surface-2)]",
-  selected: "!bg-[var(--nb-primary)] !text-white border-2 border-[var(--nb-ink)] shadow-[2px_2px_0_0_var(--nb-ink)]",
-  today: "font-extrabold ring-2 ring-inset ring-[var(--nb-primary)]",
+  selected:
+    "!bg-gradient-to-br !from-[var(--primary)] !to-[var(--primary-2)] !text-white shadow-[0_6px_16px_-6px_var(--ring)]",
+  today: "font-extrabold ring-2 ring-inset ring-[var(--primary)]",
   outside: "opacity-30",
   disabled: "opacity-25 cursor-not-allowed",
   hidden: "invisible",
