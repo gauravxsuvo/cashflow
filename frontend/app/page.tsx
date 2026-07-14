@@ -2,23 +2,30 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Download, LayoutDashboard, Plus, Search, SlidersHorizontal, X } from "lucide-react";
-import type { Transaction, ClusterSummary } from "@/types";
+import { Download, Plus, Search, SlidersHorizontal, Wallet, X } from "lucide-react";
+import type { Budgets, Transaction } from "@/types";
 import type { SortKey, SortDir } from "@/components/TransactionTable";
+import { api, BASE_URL } from "@/lib/api";
 import { exportTransactionsCsv } from "@/lib/exportCsv";
+import {
+  computeTotals,
+  effectiveCategory,
+  expensesByCategory,
+} from "@/lib/transactions";
+import { currentMonthLabel, currentMonthTransactions, filterByPeriod, type PeriodId } from "@/lib/period";
 import { useSettings } from "@/context/SettingsContext";
 import { useToast } from "@/components/Toast";
 import SummaryCard from "@/components/SummaryCard";
-import ClusterChart from "@/components/ClusterChart";
-import SpendingTrendChart from "@/components/SpendingTrendChart";
+import CategoryChart from "@/components/CategoryChart";
+import CashflowChart from "@/components/CashflowChart";
+import BudgetPanel from "@/components/BudgetPanel";
+import PeriodFilter from "@/components/PeriodFilter";
 import TransactionTable from "@/components/TransactionTable";
 import TransactionModal from "@/components/TransactionModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import ThemeToggle from "@/components/ThemeToggle";
 import CurrencySelect from "@/components/CurrencySelect";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const CURRENCY_OPTIONS = [
   { code: "USD", label: "US Dollar", symbol: "$" },
@@ -28,54 +35,36 @@ const CURRENCY_OPTIONS = [
   { code: "JPY", label: "Yen", symbol: "¥" },
 ];
 
-function effectiveCategory(tx: Transaction): string {
-  return tx.manual_category ?? tx.cluster_name ?? "Uncategorized";
-}
-
-function buildClusterSummaries(transactions: Transaction[]): ClusterSummary[] {
-  const map = new Map<string, ClusterSummary>();
-  for (const tx of transactions) {
-    const key = effectiveCategory(tx);
-    const amount = tx.amount ?? 0;
-    const existing = map.get(key);
-    if (existing) {
-      existing.total += amount;
-      existing.count += 1;
-    } else {
-      map.set(key, { cluster_name: key, total: amount, count: 1 });
-    }
-  }
-  return Array.from(map.values()).sort((a, b) => b.total - a.total);
-}
+type TypeFilter = "all" | "expense" | "income";
 
 export default function DashboardPage() {
   const { currency, setCurrency } = useSettings();
   const { toast } = useToast();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [budgets, setBudgets] = useState<Budgets>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // undefined = closed | null = add mode | Transaction = edit mode
   const [modalTarget, setModalTarget] = useState<Transaction | null | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
 
-  // Table view controls
+  // Dashboard-wide time scope + table view controls
+  const [period, setPeriod] = useState<PeriodId>("month");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [manualOnly, setManualOnly] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const fetchClusters = useCallback(async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20_000);
+  const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(`${BASE_URL}/api/clusters`, { signal: controller.signal });
-      if (!res.ok) throw new Error(`Server error: ${res.status} ${res.statusText}`);
-      const data: Transaction[] = await res.json();
-      setTransactions(data);
+      const [txns, buds] = await Promise.all([api.getTransactions(), api.getBudgets()]);
+      setTransactions(txns);
+      setBudgets(buds);
       setError(null);
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
@@ -84,14 +73,13 @@ export default function DashboardPage() {
         setError(err instanceof Error ? err.message : "An unknown error occurred.");
       }
     } finally {
-      clearTimeout(timeoutId);
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchClusters();
-  }, [fetchClusters]);
+    fetchData();
+  }, [fetchData]);
 
   // ── Mutations (optimistic) ────────────────────────────────────────────────
   async function performDelete(tx: Transaction) {
@@ -99,10 +87,8 @@ export default function DashboardPage() {
     const prev = transactions;
     setTransactions((t) => t.filter((x) => x.transaction_id !== tx.transaction_id));
     try {
-      const res = await fetch(`${BASE_URL}/api/transactions/${tx.transaction_id}`, { method: "DELETE" });
-      if (!res.ok && res.status !== 204) throw new Error(`Delete failed: ${res.status}`);
+      await api.deleteTransaction(tx.transaction_id);
       toast("Transaction deleted", "success");
-      fetchClusters(); // refresh clusters (deleting can shift ML groupings)
     } catch {
       setTransactions(prev); // rollback
       toast("Could not delete transaction", "error");
@@ -115,17 +101,30 @@ export default function DashboardPage() {
       t.map((x) => (x.transaction_id === tx.transaction_id ? { ...x, manual_category: null } : x))
     );
     try {
-      const res = await fetch(`${BASE_URL}/api/transactions/${tx.transaction_id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ manual_category: null }),
-      });
-      if (!res.ok) throw new Error("revert failed");
-      toast("Reverted to ML category", "success");
-      fetchClusters();
+      const updated = await api.updateTransaction(tx.transaction_id, { manual_category: null });
+      setTransactions((t) => t.map((x) => (x.transaction_id === updated.transaction_id ? updated : x)));
+      toast("Reverted to auto category", "success");
     } catch {
       setTransactions(prev);
       toast("Could not revert category", "error");
+    }
+  }
+
+  async function handleSetBudget(category: string, limit: number | null) {
+    const prev = budgets;
+    setBudgets((b) => {
+      const next = { ...b };
+      if (limit && limit > 0) next[category] = limit;
+      else delete next[category];
+      return next;
+    });
+    try {
+      const updated = await api.setBudget(category, limit);
+      setBudgets(updated);
+      toast(limit && limit > 0 ? "Budget saved" : "Budget removed", "success");
+    } catch {
+      setBudgets(prev);
+      toast("Could not update budget", "error");
     }
   }
 
@@ -157,29 +156,33 @@ export default function DashboardPage() {
     return () => document.removeEventListener("keydown", onKey);
   }, [isModalOpen, deleteTarget]);
 
-  // ── Derived data (full dataset → summary + charts) ────────────────────────
-  const availableCategories = useMemo(() => {
-    const cats = new Set<string>();
-    for (const tx of transactions) {
-      if (tx.cluster_name) cats.add(tx.cluster_name);
-      if (tx.manual_category) cats.add(tx.manual_category);
-    }
-    return Array.from(cats).sort();
-  }, [transactions]);
-
-  const clusterSummaries = useMemo(() => buildClusterSummaries(transactions), [transactions]);
-  const totalSpent = useMemo(() => transactions.reduce((s, tx) => s + (tx.amount ?? 0), 0), [transactions]);
-  const avgTransaction = transactions.length > 0 ? totalSpent / transactions.length : 0;
-  const topCategory = clusterSummaries.length > 0
-    ? { name: clusterSummaries[0].cluster_name, total: clusterSummaries[0].total }
+  // ── Period-scoped dataset → stats + charts ────────────────────────────────
+  const periodTransactions = useMemo(() => filterByPeriod(transactions, period), [transactions, period]);
+  const totals = useMemo(() => computeTotals(periodTransactions), [periodTransactions]);
+  const categorySummaries = useMemo(() => expensesByCategory(periodTransactions), [periodTransactions]);
+  const topCategory = categorySummaries.length > 0
+    ? { name: categorySummaries[0].category, total: categorySummaries[0].total }
     : null;
+
+  // ── Budgets always track the current calendar month ───────────────────────
+  const monthTransactions = useMemo(() => currentMonthTransactions(transactions), [transactions]);
+  const spentByCategory = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const tx of monthTransactions) {
+      if (tx.type !== "expense") continue;
+      const c = effectiveCategory(tx);
+      m[c] = (m[c] ?? 0) + (tx.amount ?? 0);
+    }
+    return m;
+  }, [monthTransactions]);
 
   // ── Filtered + sorted view (table only) ───────────────────────────────────
   const visibleTransactions = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const filtered = transactions.filter((tx) => {
+    const filtered = periodTransactions.filter((tx) => {
       if (q && !(tx.vendor ?? "").toLowerCase().includes(q)) return false;
       if (categoryFilter && effectiveCategory(tx) !== categoryFilter) return false;
+      if (typeFilter !== "all" && tx.type !== typeFilter) return false;
       if (manualOnly && tx.manual_category == null) return false;
       return true;
     });
@@ -197,9 +200,10 @@ export default function DashboardPage() {
           return (a.date ?? "").localeCompare(b.date ?? "") * dir;
       }
     });
-  }, [transactions, search, categoryFilter, manualOnly, sortKey, sortDir]);
+  }, [periodTransactions, search, categoryFilter, typeFilter, manualOnly, sortKey, sortDir]);
 
-  const hasActiveFilters = search.trim() !== "" || categoryFilter !== null || manualOnly;
+  const hasActiveFilters =
+    search.trim() !== "" || categoryFilter !== null || typeFilter !== "all" || manualOnly;
 
   // ── Loading skeleton ──────────────────────────────────────────────────────
   if (loading) {
@@ -238,7 +242,7 @@ export default function DashboardPage() {
             onClick={() => {
               setLoading(true);
               setError(null);
-              fetchClusters();
+              fetchData();
             }}
             className="nb-btn nb-btn-primary mt-4 px-4 py-2 text-sm"
           >
@@ -249,19 +253,29 @@ export default function DashboardPage() {
     );
   }
 
+  const typeFilters: { id: TypeFilter; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "expense", label: "Expenses" },
+    { id: "income", label: "Income" },
+  ];
+
   // ── Dashboard ─────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen">
+    // overflow-x-clip: no single value can ever make the whole page scroll
+    // sideways; wide content (the table) scrolls inside its own container.
+    <div className="min-h-screen overflow-x-clip">
       {/* Header */}
       <header className="border-b-[3px] border-[var(--nb-ink)] bg-[var(--nb-surface)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border-[2.5px] border-[var(--nb-ink)] bg-[var(--nb-primary)] shadow-[3px_3px_0_0_var(--nb-ink)]">
-              <LayoutDashboard className="h-5 w-5 text-white" />
+              <Wallet className="h-5 w-5 text-white" />
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-extrabold text-[var(--foreground)]">Finance Dashboard</h1>
-              <p className="text-xs font-semibold text-[var(--nb-muted)]">ML-powered spending clusters</p>
+            <div>
+              <h1 className="text-lg font-extrabold text-[var(--foreground)]">Cashflow</h1>
+              <p className="hidden text-xs font-semibold text-[var(--nb-muted)] sm:block">
+                Track spending, income &amp; budgets
+              </p>
             </div>
           </div>
 
@@ -289,17 +303,27 @@ export default function DashboardPage() {
           <EmptyState onAdd={() => setModalTarget(null)} />
         ) : (
           <>
-            <SummaryCard
-              totalTransactions={transactions.length}
-              totalSpent={totalSpent}
-              avgTransaction={avgTransaction}
-              topCategory={topCategory}
-            />
+            {/* Period scope */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <PeriodFilter value={period} onChange={setPeriod} />
+              <span className="text-xs font-bold text-[var(--nb-muted)]">
+                {periodTransactions.length} transaction{periodTransactions.length === 1 ? "" : "s"}
+              </span>
+            </div>
+
+            <SummaryCard totals={totals} topCategory={topCategory} />
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <ClusterChart data={clusterSummaries} activeCategory={categoryFilter} onSelect={setCategoryFilter} />
-              <SpendingTrendChart transactions={transactions} />
+              <CategoryChart data={categorySummaries} activeCategory={categoryFilter} onSelect={setCategoryFilter} />
+              <CashflowChart transactions={periodTransactions} />
             </div>
+
+            <BudgetPanel
+              monthLabel={currentMonthLabel()}
+              spentByCategory={spentByCategory}
+              budgets={budgets}
+              onSetBudget={handleSetBudget}
+            />
 
             {/* Transactions card */}
             <div className="nb-card overflow-hidden p-0">
@@ -308,26 +332,43 @@ export default function DashboardPage() {
                   <h2 className="text-base font-extrabold text-[var(--foreground)]">Transactions</h2>
                   <span className="text-xs font-bold text-[var(--nb-muted)]">
                     {hasActiveFilters
-                      ? `${visibleTransactions.length} of ${transactions.length}`
-                      : `${transactions.length} total`}
+                      ? `${visibleTransactions.length} of ${periodTransactions.length}`
+                      : `${periodTransactions.length} shown`}
                   </span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* Type filter */}
+                  <div className="nb-card-flat inline-flex items-center gap-0.5 p-0.5">
+                    {typeFilters.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setTypeFilter(t.id)}
+                        className={`rounded-[6px] px-2.5 py-1 text-xs font-bold transition-colors ${
+                          typeFilter === t.id
+                            ? "bg-[var(--nb-primary)] text-white"
+                            : "text-[var(--nb-muted)] hover:text-[var(--foreground)]"
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--nb-muted)]" />
                     <input
                       ref={searchRef}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Search vendor…  ( / )"
-                      className="nb-input h-9 w-44 py-1.5 pl-8 text-sm"
+                      placeholder="Search…  ( / )"
+                      className="nb-input h-9 w-40 py-1.5 pl-8 text-sm"
                     />
                   </div>
                   <button
                     onClick={() => setManualOnly((m) => !m)}
                     className={`nb-btn h-9 px-3 text-xs ${manualOnly ? "nb-btn-primary" : ""}`}
-                    title="Show only manually overridden rows"
+                    title="Show only rows where you set the category"
                   >
                     <SlidersHorizontal className="h-3.5 w-3.5" />
                     Manual only
@@ -336,12 +377,18 @@ export default function DashboardPage() {
               </div>
 
               {/* Active filter chips */}
-              {(categoryFilter || manualOnly) && (
+              {(categoryFilter || manualOnly || typeFilter !== "all") && (
                 <div className="flex flex-wrap items-center gap-2 border-b-2 border-dashed border-[var(--nb-ink)]/20 px-4 py-2.5">
                   <span className="text-xs font-bold uppercase tracking-wider text-[var(--nb-muted)]">Filters:</span>
                   {categoryFilter && (
                     <button onClick={() => setCategoryFilter(null)} className="nb-badge bg-[var(--nb-primary)] !text-white">
                       {categoryFilter}
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                  {typeFilter !== "all" && (
+                    <button onClick={() => setTypeFilter("all")} className="nb-badge bg-[#67e8f9]">
+                      {typeFilter === "income" ? "Income" : "Expenses"}
                       <X className="h-3 w-3" />
                     </button>
                   )}
@@ -373,11 +420,10 @@ export default function DashboardPage() {
         {isModalOpen && (
           <TransactionModal
             transaction={modalTarget ?? undefined}
-            availableCategories={availableCategories}
             onClose={() => setModalTarget(undefined)}
             onSuccess={(msg) => {
               toast(msg, "success");
-              fetchClusters();
+              fetchData();
             }}
           />
         )}

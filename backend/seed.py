@@ -41,7 +41,7 @@ def main() -> None:
         print(f"Cleared {removed} existing rows.")
 
     for t in generate_transactions(args.count):
-        insert_transaction(t["date"], t["vendor"], t["amount"])
+        insert_transaction(t["date"], t["vendor"], t["amount"], t.get("type", "expense"))
 
     print(f"Seeded {args.count} transactions into finance.db.")
 

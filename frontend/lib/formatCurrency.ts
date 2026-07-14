@@ -20,3 +20,10 @@ function getFormatter(currency: string): Intl.NumberFormat {
 export function formatCurrency(value: number, currency = "USD"): string {
   return getFormatter(currency).format(Number.isFinite(value) ? value : 0);
 }
+
+/** Currency string with an explicit +/- sign, e.g. "+$1,000.00" / "−$42.50". */
+export function formatSigned(value: number, currency = "USD"): string {
+  const safe = Number.isFinite(value) ? value : 0;
+  const sign = safe > 0 ? "+" : safe < 0 ? "−" : "";
+  return `${sign}${getFormatter(currency).format(Math.abs(safe))}`;
+}

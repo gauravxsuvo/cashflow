@@ -1,26 +1,34 @@
 import math
 import os
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, field_validator
 
+from categorize import ALL_CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, categorize_transactions
 from database import (
     delete_transaction,
     get_all_transactions,
+    get_budgets,
     init_db,
     insert_transaction,
+    set_budget,
     update_transaction,
 )
-from ml_service import cluster_transactions
 
 
 # ---------------------------------------------------------------------------
 # Pydantic schemas
 # ---------------------------------------------------------------------------
+
+# Upper bound for any single amount / budget. Generous enough for real personal
+# finance (a trillion) while preventing pathological values that would break
+# formatting and the UI layout.
+_MAX_AMOUNT = 1e12
+
 
 def _check_finite(v: Optional[float]) -> Optional[float]:
     if v is not None and (math.isnan(v) or math.isinf(v)):
@@ -28,10 +36,18 @@ def _check_finite(v: Optional[float]) -> Optional[float]:
     return v
 
 
+def _check_bounds(v: Optional[float]) -> Optional[float]:
+    v = _check_finite(v)
+    if v is not None and abs(v) > _MAX_AMOUNT:
+        raise ValueError("amount is too large")
+    return v
+
+
 class TransactionCreate(BaseModel):
     date: str
     vendor: str
     amount: float
+    type: Literal["expense", "income"] = "expense"
     manual_category: Optional[str] = None
 
     @field_validator("date", "vendor")
@@ -43,8 +59,11 @@ class TransactionCreate(BaseModel):
 
     @field_validator("amount")
     @classmethod
-    def _amount_finite(cls, v: float) -> float:
-        return _check_finite(v)
+    def _amount_valid(cls, v: float) -> float:
+        v = _check_bounds(v)
+        if v is not None and v < 0:
+            raise ValueError("amount must be zero or positive")
+        return v
 
     @field_validator("manual_category")
     @classmethod
@@ -56,6 +75,7 @@ class TransactionUpdate(BaseModel):
     date: Optional[str] = None
     vendor: Optional[str] = None
     amount: Optional[float] = None
+    type: Optional[Literal["expense", "income"]] = None
     manual_category: Optional[str] = None
 
     @field_validator("date", "vendor")
@@ -67,8 +87,11 @@ class TransactionUpdate(BaseModel):
 
     @field_validator("amount")
     @classmethod
-    def _amount_finite(cls, v: Optional[float]) -> Optional[float]:
-        return _check_finite(v)
+    def _amount_valid(cls, v: Optional[float]) -> Optional[float]:
+        v = _check_bounds(v)
+        if v is not None and v < 0:
+            raise ValueError("amount must be zero or positive")
+        return v
 
     @field_validator("manual_category")
     @classmethod
@@ -77,6 +100,15 @@ class TransactionUpdate(BaseModel):
         if v is None:
             return None
         return v.strip() or None
+
+
+class BudgetUpdate(BaseModel):
+    monthly_limit: Optional[float] = None
+
+    @field_validator("monthly_limit")
+    @classmethod
+    def _valid_limit(cls, v: Optional[float]) -> Optional[float]:
+        return _check_bounds(v)
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +121,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Finance Clustering API", lifespan=lifespan)
+app = FastAPI(title="Cashflow API", lifespan=lifespan)
 
 # Origins are configurable via the CORS_ORIGINS env var (comma-separated);
 # falls back to the local dev + production Vercel origins.
@@ -117,7 +149,7 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return {"service": "Finance Clustering API", "docs": "/docs", "health": "/health"}
+    return {"service": "Cashflow API", "docs": "/docs", "health": "/health"}
 
 
 @app.get("/health")
@@ -125,27 +157,34 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/api/categories")
+def list_categories() -> dict:
+    """The fixed category vocabulary the frontend picker uses."""
+    return {
+        "all": ALL_CATEGORIES,
+        "expense": EXPENSE_CATEGORIES,
+        "income": INCOME_CATEGORIES,
+    }
+
+
 @app.get("/api/transactions")
 def get_transactions() -> list[dict]:
-    return get_all_transactions()
+    """All transactions, each enriched with an auto `category` suggestion."""
+    return categorize_transactions(get_all_transactions())
 
 
+# Back-compat alias for the old ML endpoint. Same enriched payload.
 @app.get("/api/clusters")
 def get_clusters() -> list[dict]:
-    try:
-        raw = get_all_transactions()
-        if not raw:
-            return []
-        return cluster_transactions(raw)
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return categorize_transactions(get_all_transactions())
 
 
 @app.post("/api/transactions", status_code=201)
 def create_transaction(body: TransactionCreate) -> dict:
-    return insert_transaction(
-        body.date, body.vendor, body.amount, body.manual_category
+    row = insert_transaction(
+        body.date, body.vendor, body.amount, body.type, body.manual_category
     )
+    return categorize_transactions([row])[0]
 
 
 @app.put("/api/transactions/{tx_id}")
@@ -154,10 +193,30 @@ def edit_transaction(tx_id: str, body: TransactionUpdate) -> dict:
     result = update_transaction(tx_id, body.model_dump(exclude_unset=True))
     if result is None:
         raise HTTPException(status_code=404, detail="Transaction not found.")
-    return result
+    return categorize_transactions([result])[0]
 
 
 @app.delete("/api/transactions/{tx_id}", status_code=204)
 def remove_transaction(tx_id: str) -> None:
     if not delete_transaction(tx_id):
         raise HTTPException(status_code=404, detail="Transaction not found.")
+
+
+# ---------------------------------------------------------------------------
+# Budgets
+# ---------------------------------------------------------------------------
+
+@app.get("/api/budgets")
+def read_budgets() -> dict[str, float]:
+    return get_budgets()
+
+
+@app.put("/api/budgets/{category}")
+def upsert_budget(category: str, body: BudgetUpdate) -> dict[str, float]:
+    category = category.strip()
+    if not category:
+        raise HTTPException(status_code=400, detail="Category is required.")
+    if body.monthly_limit is not None and body.monthly_limit < 0:
+        raise HTTPException(status_code=400, detail="Budget cannot be negative.")
+    set_budget(category, body.monthly_limit)
+    return get_budgets()

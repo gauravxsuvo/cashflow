@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Pin, RotateCcw, Sparkles, Tras
 import type { Transaction } from "@/types";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { categoryColor } from "@/lib/categoryColors";
+import { effectiveCategory } from "@/lib/transactions";
 import { useSettings } from "@/context/SettingsContext";
 
 export type SortKey = "date" | "vendor" | "amount" | "category";
@@ -20,12 +21,12 @@ interface TransactionTableProps {
   onRevert: (tx: Transaction) => void;
 }
 
-function ClusterBadge({ name, isManual }: { name: string; isManual: boolean }) {
+function CategoryBadge({ name, isManual }: { name: string; isManual: boolean }) {
   return (
     <span
       className="nb-badge"
       style={{ backgroundColor: categoryColor(name) }}
-      title={isManual ? "Manually categorised" : "ML suggested"}
+      title={isManual ? "You set this category" : "Auto-categorised"}
     >
       {isManual ? <Pin className="h-2.5 w-2.5 shrink-0" /> : <Sparkles className="h-2.5 w-2.5 shrink-0" />}
       {name}
@@ -91,7 +92,7 @@ export default function TransactionTable({
         <thead>
           <tr className="border-b-[3px] border-[var(--nb-ink)] bg-[var(--nb-surface-2)]">
             <SortHeader label="Date" column="date" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-            <SortHeader label="Vendor" column="vendor" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+            <SortHeader label="Description" column="vendor" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <SortHeader label="Amount" column="amount" sortKey={sortKey} sortDir={sortDir} onSort={onSort} align="right" />
             <SortHeader label="Category" column="category" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             <th className="px-5 py-3" />
@@ -106,8 +107,9 @@ export default function TransactionTable({
             </tr>
           )}
           {transactions.map((tx, i) => {
-            const displayCategory = tx.manual_category ?? tx.cluster_name ?? "Uncategorized";
+            const displayCategory = effectiveCategory(tx);
             const isManual = tx.manual_category != null;
+            const isIncome = tx.type === "income";
             return (
               <motion.tr
                 key={tx.transaction_id}
@@ -123,11 +125,22 @@ export default function TransactionTable({
                 <td className="whitespace-nowrap px-5 py-3 font-bold text-[var(--foreground)]">
                   {tx.vendor ?? <span className="italic text-[var(--nb-muted)]">Unknown</span>}
                 </td>
-                <td className="whitespace-nowrap px-5 py-3 text-right font-extrabold tabular-nums text-[var(--foreground)]">
-                  {tx.amount != null ? formatCurrency(tx.amount, currency) : <span className="italic text-[var(--nb-muted)]">—</span>}
+                <td
+                  className={`whitespace-nowrap px-5 py-3 text-right font-extrabold tabular-nums ${
+                    isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--foreground)]"
+                  }`}
+                >
+                  {tx.amount != null ? (
+                    <>
+                      {isIncome ? "+" : "−"}
+                      {formatCurrency(tx.amount, currency)}
+                    </>
+                  ) : (
+                    <span className="italic text-[var(--nb-muted)]">—</span>
+                  )}
                 </td>
                 <td className="px-5 py-3">
-                  <ClusterBadge name={displayCategory} isManual={isManual} />
+                  <CategoryBadge name={displayCategory} isManual={isManual} />
                 </td>
                 <td className="px-5 py-3">
                   <div className="flex items-center justify-end gap-1.5">
@@ -135,8 +148,8 @@ export default function TransactionTable({
                       <button
                         onClick={() => onRevert(tx)}
                         className="nb-icon-btn h-8 w-8"
-                        aria-label="Revert to ML category"
-                        title="Revert to ML category"
+                        aria-label="Revert to auto category"
+                        title="Revert to auto category"
                       >
                         <RotateCcw className="h-3.5 w-3.5" />
                       </button>

@@ -2,16 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
-import type { Transaction } from "@/types";
+import { ArrowDownRight, ArrowUpRight, X } from "lucide-react";
+import type { Transaction, TransactionType } from "@/types";
+import { api } from "@/lib/api";
+import { categoriesForType } from "@/lib/categories";
 import DatePicker from "@/components/DatePicker";
 import CategorySelect from "@/components/CategorySelect";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 interface TransactionModalProps {
   transaction?: Transaction; // undefined = add mode, populated = edit mode
-  availableCategories: string[];
   onClose: () => void;
   onSuccess: (message: string) => void;
 }
@@ -20,20 +19,25 @@ interface ModalForm {
   date: string;
   vendor: string;
   amount: string; // kept as string so the field can be cleared while typing
+  type: TransactionType;
   manual_category: string | null;
 }
 
-const EMPTY_FORM: ModalForm = { date: "", vendor: "", amount: "", manual_category: null };
+function todayIso(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
-export default function TransactionModal({
-  transaction,
-  availableCategories,
-  onClose,
-  onSuccess,
-}: TransactionModalProps) {
+export default function TransactionModal({ transaction, onClose, onSuccess }: TransactionModalProps) {
   const isEdit = !!transaction;
 
-  const [form, setForm] = useState<ModalForm>(EMPTY_FORM);
+  const [form, setForm] = useState<ModalForm>(() => ({
+    date: todayIso(),
+    vendor: "",
+    amount: "",
+    type: "expense",
+    manual_category: null,
+  }));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const vendorRef = useRef<HTMLInputElement>(null);
@@ -41,13 +45,14 @@ export default function TransactionModal({
   useEffect(() => {
     if (isEdit && transaction) {
       setForm({
-        date: transaction.date ?? "",
+        date: transaction.date ?? todayIso(),
         vendor: transaction.vendor ?? "",
         amount: transaction.amount != null ? String(transaction.amount) : "",
+        type: transaction.type,
         manual_category: transaction.manual_category ?? null,
       });
     } else {
-      setForm(EMPTY_FORM);
+      setForm({ date: todayIso(), vendor: "", amount: "", type: "expense", manual_category: null });
     }
     setError(null);
   }, [transaction, isEdit]);
@@ -66,55 +71,46 @@ export default function TransactionModal({
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
+  function setType(type: TransactionType) {
+    setForm((prev) => {
+      // Drop the manual category if it isn't valid for the new type.
+      const valid = categoriesForType(type).includes(prev.manual_category ?? "");
+      return { ...prev, type, manual_category: valid ? prev.manual_category : null };
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const amountNum = parseFloat(form.amount);
-    if (!Number.isFinite(amountNum)) {
-      setError("Please enter a valid amount.");
+    if (!Number.isFinite(amountNum) || amountNum < 0) {
+      setError("Please enter a valid, non-negative amount.");
+      return;
+    }
+    if (!form.date) {
+      setError("Please choose a date.");
       return;
     }
     setSubmitting(true);
     setError(null);
 
     try {
-      const url =
-        isEdit && transaction
-          ? `${BASE_URL}/api/transactions/${transaction.transaction_id}`
-          : `${BASE_URL}/api/transactions`;
-
-      // For PUT: always include manual_category so the backend knows whether to
-      // keep, change, or clear (null) the override.
-      const body = isEdit
-        ? {
-            date: form.date,
-            vendor: form.vendor,
-            amount: amountNum,
-            manual_category: form.manual_category,
-          }
-        : {
-            date: form.date,
-            vendor: form.vendor,
-            amount: amountNum,
-            ...(form.manual_category !== null && { manual_category: form.manual_category }),
-          };
-
-      const res = await fetch(url, {
-        method: isEdit ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const detail = await res.json().catch(() => ({}));
-        const msg =
-          typeof detail?.detail === "string"
-            ? detail.detail
-            : Array.isArray(detail?.detail)
-              ? detail.detail[0]?.msg ?? `Request failed: ${res.status}`
-              : `Request failed: ${res.status}`;
-        throw new Error(msg);
+      if (isEdit && transaction) {
+        await api.updateTransaction(transaction.transaction_id, {
+          date: form.date,
+          vendor: form.vendor,
+          amount: amountNum,
+          type: form.type,
+          manual_category: form.manual_category, // null clears the override
+        });
+      } else {
+        await api.createTransaction({
+          date: form.date,
+          vendor: form.vendor,
+          amount: amountNum,
+          type: form.type,
+          ...(form.manual_category !== null && { manual_category: form.manual_category }),
+        });
       }
-
       onSuccess(isEdit ? "Transaction updated" : "Transaction added");
       onClose();
     } catch (err) {
@@ -125,6 +121,7 @@ export default function TransactionModal({
   }
 
   const labelClass = "mb-1.5 block text-xs font-bold uppercase tracking-wider text-[var(--nb-muted)]";
+  const isIncome = form.type === "income";
 
   return (
     <motion.div
@@ -151,6 +148,26 @@ export default function TransactionModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+          {/* Type toggle */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setType("expense")}
+              className={`nb-btn py-2.5 text-sm ${!isIncome ? "nb-btn-danger" : ""}`}
+            >
+              <ArrowDownRight className="h-4 w-4" />
+              Expense
+            </button>
+            <button
+              type="button"
+              onClick={() => setType("income")}
+              className={`nb-btn py-2.5 text-sm ${isIncome ? "!bg-emerald-500 !text-white" : ""}`}
+            >
+              <ArrowUpRight className="h-4 w-4" />
+              Income
+            </button>
+          </div>
+
           <div>
             <label className={labelClass}>Date</label>
             <DatePicker value={form.date} onChange={(iso) => setForm((p) => ({ ...p, date: iso }))} required />
@@ -158,7 +175,7 @@ export default function TransactionModal({
 
           <div>
             <label className={labelClass} htmlFor="vendor">
-              Vendor
+              {isIncome ? "Source" : "Description"}
             </label>
             <input
               ref={vendorRef}
@@ -168,7 +185,7 @@ export default function TransactionModal({
               value={form.vendor}
               onChange={handleTextChange}
               required
-              placeholder="e.g. Starbucks, Amazon"
+              placeholder={isIncome ? "e.g. Payroll, Client invoice" : "e.g. Starbucks, Rent"}
               className="nb-input"
             />
           </div>
@@ -184,6 +201,8 @@ export default function TransactionModal({
               value={form.amount}
               onChange={handleTextChange}
               required
+              min={0}
+              max={1_000_000_000_000}
               step={0.01}
               inputMode="decimal"
               placeholder="0.00"
@@ -195,7 +214,7 @@ export default function TransactionModal({
             <label className={labelClass}>Category</label>
             <CategorySelect
               value={form.manual_category}
-              options={availableCategories}
+              options={categoriesForType(form.type)}
               onChange={(cat) => setForm((p) => ({ ...p, manual_category: cat }))}
             />
           </div>

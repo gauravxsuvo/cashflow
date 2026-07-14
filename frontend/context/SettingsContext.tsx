@@ -14,9 +14,12 @@ const STORAGE_KEY = "pf_currency";
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState("USD");
 
+  // Read the persisted preference after mount. Doing this in an effect (rather
+  // than a lazy initializer) keeps the server and first client render in sync
+  // ("USD") and avoids a hydration mismatch on the formatted amounts.
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved) setCurrencyState(saved);
   }, []);
 

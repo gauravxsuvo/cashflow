@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Finance Dashboard",
-  description: "ML-powered personal finance transaction clustering",
+  title: "Cashflow — Personal Finance Tracker",
+  description: "Track your spending, income, and budgets with automatic categorisation.",
 };
 
 export default function RootLayout({

@@ -2,26 +2,26 @@
 
 import { Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { PieChart as PieIcon } from "lucide-react";
-import type { ClusterSummary } from "@/types";
+import type { CategorySummary } from "@/types";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { categoryColor } from "@/lib/categoryColors";
 import { useSettings } from "@/context/SettingsContext";
 
-interface ClusterChartProps {
-  data: ClusterSummary[];
+interface CategoryChartProps {
+  data: CategorySummary[];
   activeCategory: string | null;
   onSelect: (name: string | null) => void;
 }
 
-export default function ClusterChart({ data, activeCategory, onSelect }: ClusterChartProps) {
+export default function CategoryChart({ data, activeCategory, onSelect }: CategoryChartProps) {
   const { currency } = useSettings();
   const total = data.reduce((sum, d) => sum + d.total, 0);
 
   const chartData = data.map((d) => {
-    const base = categoryColor(d.cluster_name);
-    const dimmed = activeCategory && activeCategory !== d.cluster_name;
+    const base = categoryColor(d.category);
+    const dimmed = activeCategory && activeCategory !== d.category;
     return {
-      name: d.cluster_name,
+      name: d.category,
       value: d.total,
       count: d.count,
       fill: dimmed ? `${base}59` : base,
@@ -32,12 +32,12 @@ export default function ClusterChart({ data, activeCategory, onSelect }: Cluster
     <div className="nb-card flex h-full flex-col p-5">
       <div className="mb-2 flex items-center gap-2">
         <PieIcon className="h-5 w-5" />
-        <h2 className="text-base font-extrabold text-[var(--foreground)]">Spending by Category</h2>
+        <h2 className="text-base font-extrabold text-[var(--foreground)]">Where Your Money Goes</h2>
       </div>
 
       {chartData.length === 0 ? (
         <p className="flex h-[260px] items-center justify-center text-sm font-semibold text-[var(--nb-muted)]">
-          No transactions yet
+          No expenses in this period
         </p>
       ) : (
         <>
@@ -67,11 +67,12 @@ export default function ClusterChart({ data, activeCategory, onSelect }: Cluster
                     const name = String(p.name ?? "");
                     const raw = p.value;
                     const value = Array.isArray(raw) ? 0 : Number(raw ?? 0);
+                    const pct = total > 0 ? Math.round((value / total) * 100) : 0;
                     return (
                       <div className="nb-card px-3 py-2 text-sm">
                         <p className="font-extrabold text-[var(--foreground)]">{name}</p>
                         <p className="font-semibold text-[var(--nb-muted)]">
-                          {formatCurrency(value, currency)}
+                          {formatCurrency(value, currency)} · {pct}%
                         </p>
                       </div>
                     );
@@ -82,7 +83,7 @@ export default function ClusterChart({ data, activeCategory, onSelect }: Cluster
             {/* Donut center total */}
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-[0.65rem] font-bold uppercase tracking-wider text-[var(--nb-muted)]">
-                Total
+                Spent
               </span>
               <span className="text-xl font-extrabold tabular-nums text-[var(--foreground)]">
                 {formatCurrency(total, currency)}
@@ -93,17 +94,17 @@ export default function ClusterChart({ data, activeCategory, onSelect }: Cluster
           {/* Clickable legend */}
           <div className="mt-3 flex flex-wrap gap-2">
             {data.map((d) => {
-              const isActive = activeCategory === d.cluster_name;
+              const isActive = activeCategory === d.category;
               const dimmed = activeCategory && !isActive;
               return (
                 <button
-                  key={d.cluster_name}
-                  onClick={() => onSelect(isActive ? null : d.cluster_name)}
+                  key={d.category}
+                  onClick={() => onSelect(isActive ? null : d.category)}
                   className={`nb-badge transition-opacity ${dimmed ? "opacity-40" : ""}`}
-                  style={{ backgroundColor: categoryColor(d.cluster_name) }}
+                  style={{ backgroundColor: categoryColor(d.category) }}
                   title={`${formatCurrency(d.total, currency)} · ${d.count} txns`}
                 >
-                  {d.cluster_name}
+                  {d.category}
                 </button>
               );
             })}

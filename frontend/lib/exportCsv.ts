@@ -1,4 +1,5 @@
 import type { Transaction } from "@/types";
+import { effectiveCategory, signedAmount } from "@/lib/transactions";
 
 function escapeCsvField(value: string): string {
   // Wrap in quotes if the field contains a comma, quote, or newline
@@ -9,18 +10,18 @@ function escapeCsvField(value: string): string {
 }
 
 export function exportTransactionsCsv(transactions: Transaction[]): void {
-  const header = ["Date", "Vendor", "Amount", "Category", "Source"];
+  const header = ["Date", "Description", "Type", "Amount", "Signed Amount", "Category", "Source"];
 
   const rows = transactions.map((tx) => {
-    // Export the *effective* category the user actually sees, plus whether it
-    // came from a manual override or the ML cluster.
-    const effective = tx.manual_category ?? tx.cluster_name ?? "Uncategorized";
-    const source = tx.manual_category ? "Manual" : "ML";
+    const category = effectiveCategory(tx);
+    const source = tx.manual_category ? "Manual" : "Auto";
     return [
       escapeCsvField(tx.date ?? ""),
       escapeCsvField(tx.vendor ?? "Unknown"),
+      tx.type,
       tx.amount != null ? tx.amount.toFixed(2) : "",
-      escapeCsvField(effective),
+      signedAmount(tx).toFixed(2),
+      escapeCsvField(category),
       source,
     ];
   });
@@ -32,7 +33,7 @@ export function exportTransactionsCsv(transactions: Transaction[]): void {
 
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `transactions_${new Date().toISOString().slice(0, 10)}.csv`;
+  anchor.download = `cashflow_${new Date().toISOString().slice(0, 10)}.csv`;
   anchor.click();
 
   URL.revokeObjectURL(url);
