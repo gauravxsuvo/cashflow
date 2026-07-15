@@ -3,8 +3,7 @@
 A private, personal finance ledger that helps you see **where your money goes**.
 Create an account, log income and expenses, organise them with your own
 categories and accounts, watch your net balance and savings rate, and set
-monthly budgets per category - all wrapped in an Apple-style **liquid-glass**
-interface.
+monthly budgets per category - all wrapped in a clean, modern interface.
 
 ---
 
@@ -47,14 +46,13 @@ interface.
 
 ---
 
-## Design - Liquid Glass
+## Design
 
-The whole UI is a frosted-glass design system: translucent surfaces with real
-backdrop blur + saturation, hairline light-catching borders, soft layered
-shadows, and a gently drifting aurora backdrop. It is fully theme-aware (bright
-and airy in light mode, deep and luminous in dark) and responsive down to small
-phones - wide content scrolls inside its own container so the page never scrolls
-sideways.
+The whole UI is a flat, solid-surface design system: clean cards with hairline
+borders and soft shadows, no translucency or backdrop blur. It is fully
+theme-aware (bright and airy in light mode, deep and focused in dark) and
+responsive down to small phones - wide content scrolls inside its own
+container so the page never scrolls sideways.
 
 ---
 
