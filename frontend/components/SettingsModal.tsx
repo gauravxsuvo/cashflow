@@ -143,8 +143,8 @@ export default function SettingsModal({ onClose, onDataCleared }: SettingsModalP
           exit={{ opacity: 0, scale: 0.96, y: 12 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
         >
-          <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[16px] border-b border-[var(--hairline)] bg-[var(--card)] px-5 py-4">
-            <h2 className="text-lg font-bold tracking-tight text-[var(--foreground)]">Settings</h2>
+          <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[2px] border-b-2 border-[var(--border)] bg-[var(--card)] px-5 py-4">
+            <h2 className="text-lg font-black uppercase tracking-tight text-[var(--foreground)]">Settings</h2>
             <button onClick={onClose} aria-label="Close settings" className="nb-icon-btn h-9 w-9">
               <X className="h-4 w-4" />
             </button>
@@ -161,10 +161,10 @@ export default function SettingsModal({ onClose, onDataCleared }: SettingsModalP
                     <button
                       key={value}
                       onClick={() => setTheme(value)}
-                      className={`flex flex-col items-center gap-1.5 rounded-[12px] border py-3 text-xs font-semibold transition-all ${
+                      className={`flex flex-col items-center gap-1.5 rounded-[3px] border-2 py-3 text-xs font-bold uppercase tracking-wide transition-all ${
                         active
                           ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]"
-                          : "border-[var(--hairline)] text-[var(--muted)] hover:text-[var(--foreground)]"
+                          : "border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)]"
                       }`}
                     >
                       <Icon className="h-5 w-5" />
@@ -182,10 +182,10 @@ export default function SettingsModal({ onClose, onDataCleared }: SettingsModalP
                     <button
                       key={c.code}
                       onClick={() => setCurrency(c.code)}
-                      className={`flex items-center gap-2 rounded-[11px] border px-3 py-2 text-left text-sm font-medium transition-all ${
+                      className={`flex items-center gap-2 rounded-[3px] border-2 px-3 py-2 text-left text-sm font-semibold transition-all ${
                         active
                           ? "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--foreground)]"
-                          : "border-[var(--hairline)] text-[var(--muted)] hover:text-[var(--foreground)]"
+                          : "border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)]"
                       }`}
                     >
                       <span className="w-5 text-center text-base leading-none">{c.symbol}</span>
@@ -247,7 +247,7 @@ export default function SettingsModal({ onClose, onDataCleared }: SettingsModalP
             {/* Danger zone */}
             <SectionCard icon={<AlertTriangle className="h-4 w-4" />} title="Danger zone">
               <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--hairline)] p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[3px] border-2 border-[var(--border)] p-3.5">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[var(--foreground)]">Clear all data</p>
                     <p className="text-xs text-[var(--muted)]">Delete every transaction and budget. Keeps your account.</p>
@@ -257,7 +257,7 @@ export default function SettingsModal({ onClose, onDataCleared }: SettingsModalP
                     Clear data
                   </button>
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[var(--neg)]/30 bg-[var(--neg)]/5 p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[3px] border-2 border-[var(--neg)] bg-[var(--neg)]/5 p-3.5">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[var(--neg)]">Delete account</p>
                     <p className="text-xs text-[var(--muted)]">Permanently remove your account and all data.</p>

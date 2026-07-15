@@ -22,8 +22,8 @@ interface CashflowChartProps {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const INCOME_FILL = "#10b981";
-const EXPENSE_FILL = "#635bff";
+const INCOME_FILL = "#1f8a4c";
+const EXPENSE_FILL = "#144eb8";
 
 export default function CashflowChart({ transactions }: CashflowChartProps) {
   const { currency } = useSettings();
@@ -57,7 +57,7 @@ export default function CashflowChart({ transactions }: CashflowChartProps) {
     <div className="nb-card flex h-full flex-col p-5">
       <div className="mb-2 flex items-center gap-2">
         <BarChart3 className="h-5 w-5" />
-        <h2 className="text-base font-extrabold text-[var(--foreground)]">Income vs. Expenses</h2>
+        <h2 className="text-base font-black uppercase tracking-tight text-[var(--foreground)]">Income vs. Expenses</h2>
       </div>
 
       {data.length === 0 ? (
@@ -107,8 +107,8 @@ export default function CashflowChart({ transactions }: CashflowChartProps) {
                 <span className="text-[var(--nb-muted)]">{value === "income" ? "Income" : "Expenses"}</span>
               )}
             />
-            <Bar dataKey="income" fill={INCOME_FILL} radius={[6, 6, 0, 0]} maxBarSize={34} />
-            <Bar dataKey="expense" fill={EXPENSE_FILL} radius={[6, 6, 0, 0]} maxBarSize={34} />
+            <Bar dataKey="income" fill={INCOME_FILL} stroke="var(--nb-ink)" strokeWidth={1.5} radius={[0, 0, 0, 0]} maxBarSize={34} />
+            <Bar dataKey="expense" fill={EXPENSE_FILL} stroke="var(--nb-ink)" strokeWidth={1.5} radius={[0, 0, 0, 0]} maxBarSize={34} />
           </BarChart>
         </ResponsiveContainer>
       )}

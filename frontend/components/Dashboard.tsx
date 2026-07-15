@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Plus, Search, Wallet, X } from "lucide-react";
+import { Menu, Plus, Search, X } from "lucide-react";
 import type { Budgets, Transaction } from "@/types";
 import type { SortKey, SortDir } from "@/components/TransactionTable";
 import { api, ApiError, BASE_URL } from "@/lib/api";
@@ -37,6 +37,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import Sidebar from "@/components/Sidebar";
 import SettingsModal from "@/components/SettingsModal";
 import CategoryManagerModal from "@/components/CategoryManagerModal";
+import Logo from "@/components/Logo";
 
 type TypeFilter = "all" | "expense" | "income";
 
@@ -335,21 +336,21 @@ export default function Dashboard() {
 
   // Mobile top bar (lg:hidden)
   const mobileHeader = (
-    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-[var(--hairline)] bg-[var(--card)] px-4 py-3 lg:hidden">
+    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b-2 border-[var(--border)] bg-[var(--card)] px-4 py-3 lg:hidden">
       <div className="flex items-center gap-2">
         <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" className="nb-icon-btn h-10 w-10">
           <Menu className="h-5 w-5" />
         </button>
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-2)]">
-            <Wallet className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-base font-bold tracking-tight text-[var(--foreground)]">Cashflow</span>
+        <div className="flex items-center gap-2 text-[var(--foreground)]">
+          <Logo size={30} />
+          <span className="text-base font-black uppercase tracking-tight text-[var(--foreground)]">
+            Cashflow
+          </span>
         </div>
       </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        <button onClick={openAdd} className="nb-btn nb-btn-primary h-10 px-3 text-sm">
+        <button onClick={openAdd} aria-label="Add transaction" className="nb-btn nb-btn-primary h-10 px-3 text-sm">
           <Plus className="h-4 w-4" />
         </button>
       </div>
@@ -408,14 +409,15 @@ export default function Dashboard() {
             {/* Overview header */}
             <div id="overview" className="flex flex-wrap items-center justify-between gap-3 scroll-mt-20">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Overview</h1>
-                <p className="text-sm text-[var(--muted)]">
+                <div className="bh-rule mb-2" />
+                <h1 className="text-3xl font-black uppercase tracking-tight text-[var(--foreground)]">Overview</h1>
+                <p className="text-sm font-medium text-[var(--muted)]">
                   {periodTransactions.length} transaction{periodTransactions.length === 1 ? "" : "s"} in view
                 </p>
               </div>
               <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
                 <PeriodFilter value={period} onChange={setPeriod} />
-                <button onClick={() => setModalTarget(null)} className="nb-btn nb-btn-primary hidden h-10 shrink-0 px-4 text-sm sm:inline-flex">
+                <button onClick={() => setModalTarget(null)} className="nb-btn nb-btn-primary hidden h-10 shrink-0 px-4 text-sm uppercase tracking-wide sm:inline-flex">
                   <Plus className="h-4 w-4" />
                   Add
                 </button>
@@ -452,10 +454,10 @@ export default function Dashboard() {
 
             {/* Transactions */}
             <div id="transactions" className="nb-card overflow-hidden p-0 scroll-mt-20">
-              <div className="flex flex-col gap-3 border-b border-[var(--hairline)] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 border-b-2 border-[var(--border)] p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-baseline gap-2">
-                  <h2 className="text-base font-bold tracking-tight text-[var(--foreground)]">Transactions</h2>
-                  <span className="text-xs font-semibold text-[var(--muted)]">
+                  <h2 className="text-lg font-black uppercase tracking-tight text-[var(--foreground)]">Transactions</h2>
+                  <span className="text-xs font-bold text-[var(--muted)]">
                     {hasActiveFilters
                       ? `${visibleTransactions.length} of ${periodTransactions.length}`
                       : `${periodTransactions.length} shown`}
@@ -468,9 +470,9 @@ export default function Dashboard() {
                       <button
                         key={t.id}
                         onClick={() => setTypeFilter(t.id)}
-                        className={`rounded-[9px] px-2.5 py-1 text-xs font-semibold transition-colors ${
+                        className={`rounded-[2px] px-2.5 py-1 text-xs font-bold uppercase tracking-wide transition-colors ${
                           typeFilter === t.id
-                            ? "bg-gradient-to-br from-[var(--primary)] to-[var(--primary-2)] text-white"
+                            ? "bg-[var(--primary)] text-white"
                             : "text-[var(--muted)] hover:text-[var(--foreground)]"
                         }`}
                       >

@@ -33,7 +33,7 @@ export default function CategoryChart({ data, activeCategory, onSelect }: Catego
     <div className="nb-card flex h-full flex-col p-5">
       <div className="mb-2 flex items-center gap-2">
         <PieIcon className="h-5 w-5" />
-        <h2 className="text-base font-extrabold text-[var(--foreground)]">Where Your Money Goes</h2>
+        <h2 className="text-base font-black uppercase tracking-tight text-[var(--foreground)]">Where Your Money Goes</h2>
       </div>
 
       {chartData.length === 0 ? (
@@ -49,12 +49,12 @@ export default function CategoryChart({ data, activeCategory, onSelect }: Catego
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={66}
+                  innerRadius={62}
                   outerRadius={108}
-                  paddingAngle={2}
+                  paddingAngle={1}
                   dataKey="value"
-                  stroke="var(--background)"
-                  strokeWidth={2.5}
+                  stroke="var(--nb-ink)"
+                  strokeWidth={2}
                   className="cursor-pointer outline-none"
                   onClick={(_, index) => {
                     const name = chartData[index]?.name;

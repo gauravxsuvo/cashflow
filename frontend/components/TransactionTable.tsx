@@ -202,7 +202,7 @@ export default function TransactionTable({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-[var(--hairline)] bg-[var(--surface-2)]">
+            <tr className="border-b-2 border-[var(--border)] bg-[var(--surface-2)]">
               <SortHeader label="Date" column="date" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
               <SortHeader label="Description" column="vendor" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
               {showAccounts && (

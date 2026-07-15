@@ -7,29 +7,30 @@ transaction is always the one the user chose (falling back to "Uncategorized").
 
 UNCATEGORIZED = "Uncategorized"
 
-# (name, colour) — colours mirror the frontend palette so charts look cohesive.
+# (name, colour) — bold, saturated Bauhaus palette mirrored on the frontend so
+# the donut, legend and badges read as one system.
 DEFAULT_EXPENSE_CATEGORIES: list[tuple[str, str]] = [
-    ("Housing", "#fca5a5"),
-    ("Utilities", "#93c5fd"),
-    ("Groceries", "#bef264"),
-    ("Dining", "#fdba74"),
-    ("Transport", "#67e8f9"),
-    ("Travel", "#a5b4fc"),
-    ("Subscriptions", "#c4b5fd"),
-    ("Entertainment", "#f9a8d4"),
-    ("Health & Fitness", "#5eead4"),
-    ("Shopping", "#fcd34d"),
-    ("Education", "#d8b4fe"),
-    ("Other", "#d4d4d8"),
-    (UNCATEGORIZED, "#cbd5e1"),
+    ("Housing", "#e63329"),
+    ("Utilities", "#144eb8"),
+    ("Groceries", "#1f8a4c"),
+    ("Dining", "#e8792b"),
+    ("Transport", "#159aa8"),
+    ("Travel", "#7a3fb0"),
+    ("Subscriptions", "#d6336c"),
+    ("Entertainment", "#f6c019"),
+    ("Health & Fitness", "#0ca678"),
+    ("Shopping", "#3b5bdb"),
+    ("Education", "#e6a817"),
+    ("Other", "#868e96"),
+    (UNCATEGORIZED, "#adb5bd"),
 ]
 
 DEFAULT_INCOME_CATEGORIES: list[tuple[str, str]] = [
-    ("Salary", "#86efac"),
-    ("Freelance", "#6ee7b7"),
-    ("Investments", "#a7f3d0"),
-    ("Refunds", "#99f6e4"),
-    ("Other Income", "#bbf7d0"),
+    ("Salary", "#1f8a4c"),
+    ("Freelance", "#0ca678"),
+    ("Investments", "#159aa8"),
+    ("Refunds", "#66a80f"),
+    ("Other Income", "#2f9e44"),
 ]
 
 

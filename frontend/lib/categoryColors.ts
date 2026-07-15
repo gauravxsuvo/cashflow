@@ -4,18 +4,18 @@
 // resolved via CategoriesContext.colorFor().
 
 const PALETTE = [
-  "#fca5a5",
-  "#93c5fd",
-  "#bef264",
-  "#fdba74",
-  "#67e8f9",
-  "#a5b4fc",
-  "#c4b5fd",
-  "#f9a8d4",
-  "#5eead4",
-  "#fcd34d",
-  "#d8b4fe",
-  "#86efac",
+  "#e63329",
+  "#144eb8",
+  "#1f8a4c",
+  "#e8792b",
+  "#159aa8",
+  "#7a3fb0",
+  "#3b5bdb",
+  "#d6336c",
+  "#0ca678",
+  "#f6c019",
+  "#e6a817",
+  "#495057",
 ];
 
 export function fallbackColor(name: string | null | undefined): string {

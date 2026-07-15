@@ -162,8 +162,8 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
         exit={{ opacity: 0, scale: 0.96, y: 12 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
       >
-        <div className="flex items-center justify-between border-b border-[var(--hairline)] px-6 py-4">
-          <h2 className="text-lg font-bold tracking-tight text-[var(--foreground)]">
+        <div className="flex items-center justify-between border-b-2 border-[var(--border)] px-6 py-4">
+          <h2 className="text-lg font-black uppercase tracking-tight text-[var(--foreground)]">
             {isEdit ? "Edit Transaction" : "Add Transaction"}
           </h2>
           <button onClick={onClose} aria-label="Close" className="nb-icon-btn h-8 w-8">
@@ -186,7 +186,7 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
               type="button"
               onClick={() => setType("income")}
               className={`nb-btn py-2.5 text-sm ${
-                isIncome ? "!bg-gradient-to-br !from-[var(--pos)] !to-emerald-600 !text-white" : ""
+                isIncome ? "!bg-[var(--pos)] !border-[var(--foreground)] !text-white" : ""
               }`}
             >
               <ArrowUpRight className="h-4 w-4" />
@@ -285,7 +285,7 @@ export default function TransactionModal({ transaction, knownAccounts = [], onCl
           </div>
 
           {error && (
-            <p className="rounded-[11px] bg-[var(--neg)]/10 px-3.5 py-2.5 text-xs font-semibold text-[var(--neg)] shadow-[inset_0_0_0_1px] shadow-[var(--neg)]/30">
+            <p className="rounded-[3px] border-2 border-[var(--neg)] bg-[var(--neg)]/10 px-3.5 py-2.5 text-xs font-bold text-[var(--neg)]">
               {error}
             </p>
           )}

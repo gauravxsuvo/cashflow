@@ -14,9 +14,9 @@ interface CategorySelectProps {
 }
 
 const SWATCHES = [
-  "#fca5a5", "#fdba74", "#fcd34d", "#bef264", "#86efac",
-  "#5eead4", "#67e8f9", "#93c5fd", "#a5b4fc", "#c4b5fd",
-  "#d8b4fe", "#f9a8d4",
+  "#e63329", "#e8792b", "#f6c019", "#1f8a4c", "#159aa8",
+  "#144eb8", "#3b5bdb", "#7a3fb0", "#d6336c", "#0ca678",
+  "#e6a817", "#495057",
 ];
 
 export default function CategorySelect({ value, options, kind, onChange }: CategorySelectProps) {
@@ -91,7 +91,7 @@ export default function CategorySelect({ value, options, kind, onChange }: Categ
       >
         <span className="flex min-w-0 items-center gap-2 font-medium text-[var(--foreground)]">
           <span
-            className="h-3 w-3 shrink-0 rounded-full ring-2 ring-[var(--glass-ring)]"
+            className="h-3 w-3 shrink-0 rounded-full border-2 border-[var(--border)]"
             style={{ backgroundColor: colorFor(value) }}
           />
           <span className="truncate">{value || "Uncategorized"}</span>
@@ -119,7 +119,7 @@ export default function CategorySelect({ value, options, kind, onChange }: Categ
                   }`}
                 >
                   <span
-                    className="h-3 w-3 shrink-0 rounded-full ring-2 ring-[var(--glass-ring)]"
+                    className="h-3 w-3 shrink-0 rounded-full border-2 border-[var(--border)]"
                     style={{ backgroundColor: colorFor(cat) }}
                   />
                   <span className="flex-1 truncate text-left">{cat}</span>

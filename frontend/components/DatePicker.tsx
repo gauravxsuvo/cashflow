@@ -32,11 +32,11 @@ const DPC = {
   week: "",
   day: "p-0 text-center align-middle",
   day_button:
-    "mx-auto flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium " +
+    "mx-auto flex h-9 w-9 items-center justify-center rounded-[3px] text-sm font-semibold " +
     "text-[var(--foreground)] transition-colors focus:outline-none hover:bg-[var(--surface-2)]",
   selected:
-    "!bg-[var(--primary)] !text-white hover:!bg-[var(--primary)] shadow-[0_4px_12px_-4px_var(--ring)]",
-  today: "font-bold text-[var(--primary)]",
+    "!bg-[var(--primary)] !text-white hover:!bg-[var(--primary)] !border-2 !border-[var(--foreground)]",
+  today: "font-black text-[var(--primary)] underline",
   outside: "opacity-40",
   disabled: "opacity-30 cursor-not-allowed hover:!bg-transparent",
   hidden: "invisible",

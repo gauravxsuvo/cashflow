@@ -26,21 +26,21 @@ export default function InsightsPanel({ totals, summaries, recent }: InsightsPan
     <div className="nb-card flex h-full flex-col gap-5 p-5">
       <div className="flex items-center gap-2">
         <Sparkles className="h-5 w-5 text-[var(--primary)]" />
-        <h2 className="text-base font-bold tracking-tight text-[var(--foreground)]">Insights</h2>
+        <h2 className="text-base font-black uppercase tracking-tight text-[var(--foreground)]">Insights</h2>
       </div>
 
       {/* Savings rate */}
-      <div className="rounded-[16px] border border-[var(--hairline)] bg-[var(--surface-2)] p-4">
+      <div className="rounded-[4px] border-2 border-[var(--border)] bg-[var(--surface-2)] p-4">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Savings rate</span>
+          <span className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Savings rate</span>
           <TrendingUp className="h-4 w-4 text-[var(--pos)]" />
         </div>
-        <p className="mt-1 text-3xl font-bold tabular-nums text-[var(--foreground)]">
+        <p className="mt-1 text-3xl font-black tabular-nums text-[var(--foreground)]">
           {totals.income > 0 ? `${totals.savingsRate.toFixed(0)}%` : "—"}
         </p>
-        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--hairline)]">
+        <div className="mt-2 h-2.5 w-full overflow-hidden rounded-[2px] border border-[var(--border)] bg-[var(--card)]">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--primary-2)] transition-all"
+            className="h-full bg-[var(--primary)] transition-all"
             style={{ width: `${Math.min(100, Math.max(0, totals.savingsRate))}%` }}
           />
         </div>
@@ -67,8 +67,8 @@ export default function InsightsPanel({ totals, summaries, recent }: InsightsPan
                       {formatCurrency(c.total, currency)}
                     </span>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--hairline)]">
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                  <div className="h-2 w-full overflow-hidden rounded-[2px] border border-[var(--hairline)] bg-[var(--surface-2)]">
+                    <div className="h-full" style={{ width: `${pct}%`, backgroundColor: color }} />
                   </div>
                 </li>
               );

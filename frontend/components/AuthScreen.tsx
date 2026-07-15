@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Loader2, Lock, User, Wallet, BarChart3, Target, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, User, BarChart3, Target, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/api";
 import ThemeToggle from "@/components/ThemeToggle";
+import Logo from "@/components/Logo";
 
 type Mode = "login" | "register";
 
@@ -86,23 +87,39 @@ export default function AuthScreen() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center p-4 sm:p-6">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
+      {/* Bauhaus geometric backdrop */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-16 -top-16 h-56 w-56 rounded-full border-[10px] border-[var(--accent-blue)] opacity-[0.12]" />
+        <div className="absolute right-[-40px] top-24 h-40 w-40 rotate-12 bg-[var(--accent-yellow)] opacity-[0.14]" />
+        <div
+          className="absolute bottom-[-30px] left-1/4 h-0 w-0 opacity-[0.13]"
+          style={{
+            borderLeft: "70px solid transparent",
+            borderRight: "70px solid transparent",
+            borderBottom: "120px solid var(--accent-red)",
+          }}
+        />
+        <div className="absolute bottom-16 right-16 h-24 w-24 rounded-full bg-[var(--accent-red)] opacity-[0.1]" />
+      </div>
+
       <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
         <ThemeToggle />
       </div>
 
-      <div className="grid w-full max-w-5xl items-center gap-8 lg:grid-cols-2">
+      <div className="relative grid w-full max-w-5xl items-center gap-8 lg:grid-cols-2">
         {/* Brand / marketing side */}
         <div className="hidden flex-col gap-8 px-4 lg:flex">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-2)] shadow-[0_10px_30px_-8px_var(--ring)]">
-              <Wallet className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight text-[var(--foreground)]">Cashflow</span>
+          <div className="flex items-center gap-3 text-[var(--foreground)]">
+            <Logo size={48} />
+            <span className="text-2xl font-black uppercase tracking-tight text-[var(--foreground)]">
+              Cashflow
+            </span>
           </div>
 
           <div>
-            <h1 className="text-4xl font-bold leading-tight tracking-tight text-[var(--foreground)]">
+            <div className="bh-rule mb-5" />
+            <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-[var(--foreground)]">
               Every dollar,
               <br />
               beautifully clear.
@@ -115,12 +132,15 @@ export default function AuthScreen() {
 
           <ul className="flex flex-col gap-4">
             {[
-              { icon: Sparkles, text: "Your own categories, colours and accounts" },
-              { icon: BarChart3, text: "Net balance, savings rate & trends at a glance" },
-              { icon: Target, text: "Monthly budgets that keep you on track" },
-            ].map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-sm font-medium text-[var(--foreground)]">
-                <span className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-[var(--primary-soft)] text-[var(--primary)]">
+              { icon: Sparkles, text: "Your own categories, colours and accounts", color: "var(--accent-red)" },
+              { icon: BarChart3, text: "Net balance, savings rate & trends at a glance", color: "var(--accent-blue)" },
+              { icon: Target, text: "Monthly budgets that keep you on track", color: "var(--accent-yellow)" },
+            ].map(({ icon: Icon, text, color }) => (
+              <li key={text} className="flex items-center gap-3 text-sm font-semibold text-[var(--foreground)]">
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-[3px] border-2 border-[var(--border)] text-white"
+                  style={{ backgroundColor: color }}
+                >
                   <Icon className="h-4 w-4" />
                 </span>
                 {text}
@@ -137,11 +157,11 @@ export default function AuthScreen() {
           className="nb-card mx-auto w-full max-w-md p-6 sm:p-8"
         >
           {/* Mobile brand */}
-          <div className="mb-6 flex items-center justify-center gap-2.5 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-2)] shadow-[0_8px_24px_-8px_var(--ring)]">
-              <Wallet className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-[var(--foreground)]">Cashflow</span>
+          <div className="mb-6 flex items-center justify-center gap-2.5 text-[var(--foreground)] lg:hidden">
+            <Logo size={36} />
+            <span className="text-xl font-black uppercase tracking-tight text-[var(--foreground)]">
+              Cashflow
+            </span>
           </div>
 
           {/* Mode switch */}
@@ -151,14 +171,14 @@ export default function AuthScreen() {
                 key={m}
                 type="button"
                 onClick={() => switchMode(m)}
-                className={`relative rounded-[10px] py-2 text-sm font-semibold transition-colors ${
+                className={`relative rounded-[2px] py-2 text-sm font-bold uppercase tracking-wide transition-colors ${
                   mode === m ? "text-white" : "text-[var(--muted)] hover:text-[var(--foreground)]"
                 }`}
               >
                 {mode === m && (
                   <motion.span
                     layoutId="authTab"
-                    className="absolute inset-0 rounded-[10px] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-2)]"
+                    className="absolute inset-0 rounded-[2px] bg-[var(--primary)]"
                     transition={{ type: "spring", stiffness: 400, damping: 32 }}
                   />
                 )}
@@ -167,7 +187,7 @@ export default function AuthScreen() {
             ))}
           </div>
 
-          <h2 className="text-xl font-bold tracking-tight text-[var(--foreground)]">
+          <h2 className="text-2xl font-black tracking-tight text-[var(--foreground)]">
             {isRegister ? "Create your account" : "Welcome back"}
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
@@ -279,7 +299,7 @@ export default function AuthScreen() {
               <motion.p
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-[11px] border border-[var(--neg)]/40 bg-[var(--neg)]/10 px-3.5 py-2.5 text-xs font-semibold text-[var(--neg)]"
+                className="rounded-[3px] border-2 border-[var(--neg)] bg-[var(--neg)]/10 px-3.5 py-2.5 text-xs font-bold text-[var(--neg)]"
               >
                 {error}
               </motion.p>
@@ -288,7 +308,7 @@ export default function AuthScreen() {
             <button
               type="submit"
               disabled={submitting}
-              className="nb-btn nb-btn-primary w-full py-3 text-sm"
+              className="nb-btn nb-btn-primary w-full py-3 text-sm uppercase tracking-wide"
             >
               {submitting ? (
                 <>

@@ -15,26 +15,27 @@ interface SummaryCardProps {
 interface StatCardProps {
   icon: React.ReactNode;
   accent: string;
+  iconColor?: string;
   label: string;
   value: string;
   sub?: React.ReactNode;
   valueClass?: string;
 }
 
-function StatCard({ icon, accent, label, value, sub, valueClass }: StatCardProps) {
+function StatCard({ icon, accent, iconColor = "#fff", label, value, sub, valueClass }: StatCardProps) {
   return (
     <div className="nb-card flex items-center gap-4 p-4 sm:p-5">
       <div
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]"
-        style={{ backgroundColor: `${accent}22`, color: accent }}
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[3px] border-2 border-[var(--border)]"
+        style={{ backgroundColor: accent, color: iconColor }}
       >
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="truncate text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
+        <p className="truncate text-[0.7rem] font-bold uppercase tracking-wide text-[var(--muted)]">
           {label}
         </p>
-        <p className={`truncate text-2xl font-bold tabular-nums ${valueClass ?? "text-[var(--foreground)]"}`}>
+        <p className={`truncate text-2xl font-black tabular-nums ${valueClass ?? "text-[var(--foreground)]"}`}>
           {value}
         </p>
         {sub && <div className="truncate text-xs font-medium text-[var(--muted)]">{sub}</div>}
@@ -65,7 +66,7 @@ export default function SummaryCard({ totals, topCategory, expenseTrend }: Summa
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
-        accent={positive ? "#10b981" : "#f43f5e"}
+        accent={positive ? "#1f8a4c" : "#e63329"}
         icon={<Scale className="h-6 w-6" />}
         label="Net Balance"
         value={`${net < 0 ? "−" : ""}${formatCurrency(Math.abs(net), currency)}`}
@@ -73,20 +74,21 @@ export default function SummaryCard({ totals, topCategory, expenseTrend }: Summa
         sub={positive ? "You're in the green" : "Spending exceeds income"}
       />
       <StatCard
-        accent="#10b981"
+        accent="#1f8a4c"
         icon={<ArrowUpRight className="h-6 w-6" />}
         label="Income"
         value={formatCurrency(income, currency)}
       />
       <StatCard
-        accent="#635bff"
+        accent="#144eb8"
         icon={<ArrowDownRight className="h-6 w-6" />}
         label="Expenses"
         value={formatCurrency(expenses, currency)}
         sub={trendEl}
       />
       <StatCard
-        accent="#22d3ee"
+        accent="#f6c019"
+        iconColor="#17140f"
         icon={<PiggyBank className="h-6 w-6" />}
         label="Savings Rate"
         value={income > 0 ? `${savingsRate.toFixed(0)}%` : "—"}

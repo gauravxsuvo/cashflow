@@ -8,9 +8,9 @@ import { useCategories } from "@/context/CategoriesContext";
 import { useToast } from "@/components/Toast";
 
 const SWATCHES = [
-  "#fca5a5", "#fdba74", "#fcd34d", "#bef264", "#86efac",
-  "#5eead4", "#67e8f9", "#93c5fd", "#a5b4fc", "#c4b5fd",
-  "#d8b4fe", "#f9a8d4", "#cbd5e1",
+  "#e63329", "#e8792b", "#f6c019", "#1f8a4c", "#159aa8",
+  "#144eb8", "#3b5bdb", "#7a3fb0", "#d6336c", "#0ca678",
+  "#e6a817", "#495057", "#111111",
 ];
 
 const UNCATEGORIZED = "Uncategorized";
@@ -100,11 +100,11 @@ export default function CategoryManagerModal({ onClose, onMutated }: CategoryMan
     const isUncat = name === UNCATEGORIZED;
     const color = colorFor(name);
     return (
-      <div className="flex items-center gap-2 rounded-[12px] border border-[var(--hairline)] bg-[var(--surface-2)] px-3 py-2">
+      <div className="flex items-center gap-2 rounded-[3px] border-2 border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
         <button
           type="button"
           onClick={() => setRecoloring(recoloring === name ? null : name)}
-          className="h-4 w-4 shrink-0 rounded-full ring-2 ring-[var(--glass-ring)] transition-transform hover:scale-110"
+          className="h-4 w-4 shrink-0 rounded-full border-2 border-[var(--border)] transition-transform hover:scale-110"
           style={{ backgroundColor: color }}
           aria-label={`Recolour ${name}`}
         />
@@ -155,7 +155,7 @@ export default function CategoryManagerModal({ onClose, onMutated }: CategoryMan
   function RecolorPalette({ name }: { name: string }) {
     if (recoloring !== name) return null;
     return (
-      <div className="flex flex-wrap gap-1.5 rounded-[12px] border border-[var(--hairline)] bg-[var(--surface-2)] p-2">
+      <div className="flex flex-wrap gap-1.5 rounded-[3px] border-2 border-[var(--border)] bg-[var(--surface-2)] p-2">
         {SWATCHES.map((c) => (
           <button
             key={c}
@@ -185,10 +185,10 @@ export default function CategoryManagerModal({ onClose, onMutated }: CategoryMan
         exit={{ opacity: 0, scale: 0.96, y: 12 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[16px] border-b border-[var(--hairline)] bg-[var(--card)] px-5 py-4">
+        <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[2px] border-b-2 border-[var(--border)] bg-[var(--card)] px-5 py-4">
           <div className="flex items-center gap-2">
             <Tag className="h-5 w-5 text-[var(--primary)]" />
-            <h2 className="text-lg font-bold tracking-tight text-[var(--foreground)]">Categories</h2>
+            <h2 className="text-lg font-black uppercase tracking-tight text-[var(--foreground)]">Categories</h2>
           </div>
           <button onClick={onClose} aria-label="Close" className="nb-icon-btn h-9 w-9">
             <X className="h-4 w-4" />
@@ -205,9 +205,9 @@ export default function CategoryManagerModal({ onClose, onMutated }: CategoryMan
                   <button
                     key={k}
                     onClick={() => setAddKind(k)}
-                    className={`rounded-[10px] px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
+                    className={`rounded-[2px] px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors ${
                       addKind === k
-                        ? "bg-gradient-to-br from-[var(--primary)] to-[var(--primary-2)] text-white"
+                        ? "bg-[var(--primary)] text-white"
                         : "text-[var(--muted)] hover:text-[var(--foreground)]"
                     }`}
                   >
@@ -240,7 +240,7 @@ export default function CategoryManagerModal({ onClose, onMutated }: CategoryMan
                   style={{ backgroundColor: c }}
                   aria-label={`Colour ${c}`}
                 >
-                  {addColor === c && <Check className="mx-auto h-3.5 w-3.5 text-black/70" />}
+                  {addColor === c && <Check className="mx-auto h-3.5 w-3.5 text-white" />}
                 </button>
               ))}
             </div>

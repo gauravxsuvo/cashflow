@@ -20,15 +20,15 @@ const ToastContext = createContext<ToastApi | null>(null);
 
 const KIND_STYLES: Record<ToastKind, { bar: string; icon: React.ReactNode }> = {
   success: {
-    bar: "#10b981",
+    bar: "#1f8a4c",
     icon: <CheckCircle2 className="h-5 w-5" />,
   },
   error: {
-    bar: "#f43f5e",
+    bar: "#e63329",
     icon: <AlertTriangle className="h-5 w-5" />,
   },
   info: {
-    bar: "#6a5cff",
+    bar: "#144eb8",
     icon: <Info className="h-5 w-5" />,
   },
 };

@@ -15,9 +15,9 @@ interface BudgetPanelProps {
 }
 
 function barColor(ratio: number): string {
-  if (ratio > 1) return "#ef4444"; // over budget
-  if (ratio >= 0.8) return "#f59e0b"; // getting close
-  return "#22c55e"; // healthy
+  if (ratio > 1) return "#e63329"; // over budget
+  if (ratio >= 0.8) return "#f6c019"; // getting close
+  return "#1f8a4c"; // healthy
 }
 
 export default function BudgetPanel({ monthLabel, spentByCategory, budgets, onSetBudget }: BudgetPanelProps) {
@@ -85,7 +85,7 @@ export default function BudgetPanel({ monthLabel, spentByCategory, budgets, onSe
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Target className="h-5 w-5" />
-          <h2 className="text-base font-extrabold text-[var(--foreground)]">Monthly Budgets</h2>
+          <h2 className="text-base font-black uppercase tracking-tight text-[var(--foreground)]">Monthly Budgets</h2>
           <span className="text-xs font-bold text-[var(--nb-muted)]">{monthLabel}</span>
         </div>
         {totalBudget > 0 && (
@@ -166,9 +166,9 @@ export default function BudgetPanel({ monthLabel, spentByCategory, budgets, onSe
 
                 {limit != null ? (
                   <>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full border border-[var(--hairline)] bg-[var(--surface-2)]">
+                    <div className="h-2.5 w-full overflow-hidden rounded-[2px] border border-[var(--border)] bg-[var(--surface-2)]">
                       <div
-                        className="h-full rounded-full transition-all"
+                        className="h-full transition-all"
                         style={{ width: `${pct}%`, backgroundColor: barColor(ratio) }}
                       />
                     </div>

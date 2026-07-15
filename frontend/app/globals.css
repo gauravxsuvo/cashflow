@@ -4,53 +4,65 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ========================================================================
-   CASHFLOW DESIGN SYSTEM
-   A clean, modern fintech look: solid surfaces, hairline borders and soft
-   shadows. No translucency, no backdrop blur. Fully theme-aware.
+   CASHFLOW — BAUHAUS DESIGN SYSTEM
+   Primary red / blue / yellow, warm paper + ink black, bold keylines, hard
+   offset shadows and near-square geometry. Circles play against squares.
+   Flat only: no translucency, no gradients, no soft blur.
 
    Legacy `--nb-*` names and `.nb-*` / `.glass` classes are kept as aliases so
-   existing markup keeps working — they now render as flat, solid surfaces.
+   existing markup keeps working — they now render as flat Bauhaus surfaces.
    ======================================================================== */
 :root {
   color-scheme: light;
 
-  --background: #f4f5f8;
-  --foreground: #14161f;
-  --muted: #5f6675;
+  --background: #ece8dc; /* warm paper */
+  --foreground: #17140f; /* ink */
+  --muted: #6e6555;
 
   /* Surfaces */
-  --card: #ffffff;
-  --card-2: #f8f9fb;          /* flat / secondary panels */
-  --surface-2: #f1f3f7;       /* subtle fills, hovers, chips */
-  --field: #f7f8fa;           /* form controls */
-  --hairline: #e6e8ee;        /* borders / dividers */
+  --card: #fbfaf4;
+  --card-2: #f2ede0; /* flat / secondary panels */
+  --surface-2: #ebe5d6; /* subtle fills, hovers, chips */
+  --field: #ffffff; /* form controls */
 
-  /* Brand */
-  --primary: #635bff;
-  --primary-2: #9366ff;
-  --primary-soft: rgba(99, 91, 255, 0.1);
+  /* Lines */
+  --border: #17140f; /* bold keyline for cards / controls */
+  --hairline: #ded7c6; /* soft internal dividers */
+
+  /* Brand — Bauhaus blue */
+  --primary: #144eb8;
+  --primary-2: #144eb8; /* kept equal so legacy gradients render flat */
+  --primary-soft: rgba(20, 78, 184, 0.12);
   --primary-contrast: #ffffff;
-  --ring: rgba(99, 91, 255, 0.4);
+  --ring: rgba(20, 78, 184, 0.4);
+
+  /* Bauhaus accents */
+  --accent-red: #e63329;
+  --accent-yellow: #f6c019;
+  --accent-blue: #144eb8;
 
   /* Semantic */
-  --pos: #0f9d6f;
-  --neg: #e5484d;
-  --warn: #d97706;
+  --pos: #1f8a4c;
+  --neg: #e63329;
+  --warn: #b8730a;
 
-  /* Radii */
-  --radius: 16px;
-  --radius-sm: 12px;
-  --radius-xs: 10px;
+  /* Radii — nearly square; circles are drawn explicitly with rounded-full */
+  --radius: 4px;
+  --radius-sm: 4px;
+  --radius-xs: 3px;
 
-  /* Elevation */
-  --shadow-xs: 0 1px 2px rgba(17, 19, 34, 0.05);
-  --shadow-sm: 0 1px 2px rgba(17, 19, 34, 0.04), 0 2px 8px -3px rgba(17, 19, 34, 0.08);
-  --shadow-md: 0 4px 12px -3px rgba(17, 19, 34, 0.1), 0 2px 6px -3px rgba(17, 19, 34, 0.07);
-  --shadow-lg: 0 16px 40px -12px rgba(17, 19, 34, 0.22), 0 6px 16px -8px rgba(17, 19, 34, 0.12);
+  /* Hard offset shadow ink */
+  --hard: #17140f;
 
-  /* Legacy aliases (map onto the flat system) */
+  /* Elevation — crisp offsets, no blur */
+  --shadow-xs: 2px 2px 0 var(--hard);
+  --shadow-sm: 4px 4px 0 color-mix(in srgb, var(--hard) 12%, transparent);
+  --shadow-md: 4px 4px 0 var(--hard);
+  --shadow-lg: 8px 8px 0 var(--hard);
+
+  /* Legacy aliases (map onto the Bauhaus system) */
   --glass-ring: var(--hairline);
-  --nb-ink: var(--hairline);
+  --nb-ink: var(--border);
   --nb-surface: var(--card);
   --nb-surface-2: var(--surface-2);
   --nb-muted: var(--muted);
@@ -60,29 +72,37 @@
 .dark {
   color-scheme: dark;
 
-  --background: #0a0b10;
-  --foreground: #e9eaf1;
-  --muted: #969db2;
+  --background: #141310;
+  --foreground: #f1ece0;
+  --muted: #a79e8b;
 
-  --card: #14161e;
-  --card-2: #171a23;
-  --surface-2: rgba(255, 255, 255, 0.045);
-  --field: rgba(255, 255, 255, 0.035);
-  --hairline: rgba(255, 255, 255, 0.09);
+  --card: #201d17;
+  --card-2: #262219;
+  --surface-2: rgba(255, 255, 255, 0.05);
+  --field: #1b1813;
 
-  --primary: #8078ff;
-  --primary-2: #a985ff;
-  --primary-soft: rgba(128, 120, 255, 0.16);
-  --ring: rgba(128, 120, 255, 0.45);
+  --border: #574f3f;
+  --hairline: rgba(255, 255, 255, 0.1);
 
-  --pos: #2dd4a7;
-  --neg: #ff6b6f;
-  --warn: #fbbf24;
+  --primary: #4c86f0;
+  --primary-2: #4c86f0;
+  --primary-soft: rgba(76, 134, 240, 0.16);
+  --ring: rgba(76, 134, 240, 0.45);
 
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px -3px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 14px -3px rgba(0, 0, 0, 0.55);
-  --shadow-lg: 0 20px 48px -14px rgba(0, 0, 0, 0.7), 0 8px 20px -10px rgba(0, 0, 0, 0.6);
+  --accent-red: #ff5b4e;
+  --accent-yellow: #f6c019;
+  --accent-blue: #4c86f0;
+
+  --pos: #38c172;
+  --neg: #ff5b4e;
+  --warn: #f6c019;
+
+  --hard: #000000;
+
+  --shadow-xs: 2px 2px 0 var(--hard);
+  --shadow-sm: 4px 4px 0 color-mix(in srgb, var(--hard) 45%, transparent);
+  --shadow-md: 4px 4px 0 var(--hard);
+  --shadow-lg: 8px 8px 0 var(--hard);
 
   --glass-ring: var(--hairline);
   --nb-surface: var(--card);
@@ -112,28 +132,28 @@ body {
    PRIMITIVES
    ======================================================================== */
 @layer components {
-  /* Cards — solid surface, hairline border, soft shadow */
+  /* Cards — flat surface, bold keyline, crisp offset */
   .glass,
   .nb-card {
     position: relative;
     background: var(--card);
-    border: 1px solid var(--hairline);
+    border: 2px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow-sm);
   }
 
-  /* Flat / secondary panel — recessed feel without a drop shadow */
+  /* Flat / secondary panel — bordered, no shadow */
   .nb-card-flat {
     position: relative;
     background: var(--card-2);
-    border: 1px solid var(--hairline);
+    border: 2px solid var(--border);
     border-radius: var(--radius-sm);
   }
   .dark .nb-card-flat {
     background: var(--surface-2);
   }
 
-  /* Buttons */
+  /* Buttons — bordered blocks that press on click */
   .nb-btn {
     position: relative;
     display: inline-flex;
@@ -142,51 +162,51 @@ body {
     gap: 0.5rem;
     border-radius: var(--radius-sm);
     background: var(--card);
-    border: 1px solid var(--hairline);
+    border: 2px solid var(--border);
     color: var(--foreground);
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.01em;
     cursor: pointer;
-    box-shadow: var(--shadow-xs);
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease,
-      box-shadow 0.15s ease, filter 0.15s ease;
+    box-shadow: 2px 2px 0 var(--hard);
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.12s ease,
+      border-color 0.12s ease, filter 0.12s ease;
     user-select: none;
   }
   .nb-btn:hover {
     background: var(--surface-2);
-    border-color: color-mix(in srgb, var(--foreground) 16%, var(--hairline));
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--hard);
   }
   .nb-btn:active {
-    transform: translateY(0.5px) scale(0.99);
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--hard);
   }
   .nb-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
-    filter: none;
+    box-shadow: 2px 2px 0 var(--hard);
     background: var(--card);
   }
   .nb-btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--primary-2));
-    border-color: transparent;
+    background: var(--primary);
+    border-color: var(--foreground);
     color: var(--primary-contrast);
-    box-shadow: 0 1px 2px rgba(50, 40, 130, 0.25), 0 8px 20px -8px var(--ring);
   }
   .nb-btn-primary:hover {
-    background: linear-gradient(135deg, var(--primary), var(--primary-2));
-    border-color: transparent;
-    filter: brightness(1.06);
-    box-shadow: 0 2px 3px rgba(50, 40, 130, 0.25), 0 12px 26px -8px var(--ring);
+    background: var(--primary);
+    border-color: var(--foreground);
+    filter: brightness(1.08);
   }
   .nb-btn-danger {
-    background: linear-gradient(135deg, #fb5a63, #e5484d);
-    border-color: transparent;
+    background: var(--neg);
+    border-color: var(--foreground);
     color: #fff;
-    box-shadow: 0 1px 2px rgba(120, 20, 30, 0.25), 0 8px 20px -8px rgba(229, 72, 77, 0.5);
   }
   .nb-btn-danger:hover {
-    background: linear-gradient(135deg, #fb5a63, #e5484d);
-    border-color: transparent;
-    filter: brightness(1.05);
+    background: var(--neg);
+    border-color: var(--foreground);
+    filter: brightness(1.06);
   }
 
   /* Icon button — square control */
@@ -197,68 +217,83 @@ body {
     justify-content: center;
     border-radius: var(--radius-xs);
     background: var(--card);
-    border: 1px solid var(--hairline);
+    border: 2px solid var(--border);
     color: var(--foreground);
     cursor: pointer;
-    box-shadow: var(--shadow-xs);
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease,
-      color 0.15s ease;
+    box-shadow: 2px 2px 0 var(--hard);
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.12s ease,
+      border-color 0.12s ease, color 0.12s ease;
   }
   .nb-icon-btn:hover {
     background: var(--surface-2);
-    border-color: color-mix(in srgb, var(--foreground) 16%, var(--hairline));
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--hard);
   }
   .nb-icon-btn:active {
-    transform: scale(0.96);
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--hard);
   }
 
-  /* Inputs */
+  /* Inputs — bordered fields, coloured hard focus */
   .nb-input {
     width: 100%;
     border-radius: var(--radius-xs);
     background: var(--field);
-    border: 1px solid var(--hairline);
+    border: 2px solid var(--border);
     color: var(--foreground);
-    padding: 0.6rem 0.8rem;
+    padding: 0.55rem 0.8rem;
+    font-weight: 500;
     outline: none;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
   }
   .nb-input::placeholder {
     color: var(--muted);
     opacity: 0.85;
   }
   .nb-input:focus {
-    background: var(--card);
+    background: var(--field);
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px var(--ring);
+    box-shadow: 3px 3px 0 color-mix(in srgb, var(--primary) 32%, transparent);
   }
   select.nb-input {
     -webkit-appearance: none;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6675' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236e6555' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.6rem center;
     background-size: 1rem;
     padding-right: 2rem;
   }
   select.nb-input option {
-    color: #14161f;
+    color: #17140f;
   }
 
-  /* Chips / badges */
+  /* Chips / badges — square, bordered */
   .nb-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.32rem;
-    border-radius: 999px;
-    padding: 0.2rem 0.62rem;
-    font-weight: 600;
+    border-radius: var(--radius-xs);
+    padding: 0.18rem 0.55rem;
+    font-weight: 700;
     font-size: 0.72rem;
     line-height: 1.25;
+    letter-spacing: 0.01em;
     color: var(--foreground);
     background: var(--surface-2);
-    border: 1px solid var(--hairline);
+    border: 1.5px solid var(--border);
   }
+}
+
+/* ========================================================================
+   BAUHAUS DECORATIVE HELPERS
+   ======================================================================== */
+/* Thin primary-colour rule used as a section accent. */
+.bh-rule {
+  height: 4px;
+  width: 44px;
+  background: var(--primary);
+  border-radius: 999px;
 }
 
 /* Recharts: remove default focus outlines */
@@ -270,20 +305,20 @@ body {
 /* Scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--muted) 35%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--muted) 40%, transparent) transparent;
 }
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 *::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--muted) 38%, transparent);
+  background: color-mix(in srgb, var(--muted) 42%, transparent);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--muted) 58%, transparent);
+  background: color-mix(in srgb, var(--muted) 62%, transparent);
   background-clip: content-box;
 }
 

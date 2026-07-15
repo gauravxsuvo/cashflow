@@ -49,15 +49,15 @@ export default function ConfirmDialog({
         transition={{ duration: 0.16, ease: "easeOut" }}
       >
         <div className="flex items-start gap-3 p-5">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--neg)]/15 text-[var(--neg)]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[3px] border-2 border-[var(--border)] bg-[var(--neg)] text-white">
             <AlertTriangle className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <h2 className="text-base font-bold tracking-tight text-[var(--foreground)]">{title}</h2>
+            <h2 className="text-base font-black uppercase tracking-tight text-[var(--foreground)]">{title}</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">{message}</p>
           </div>
         </div>
-        <div className="flex justify-end gap-2 border-t border-[var(--hairline)] bg-[var(--surface-2)] p-3">
+        <div className="flex justify-end gap-2 border-t-2 border-[var(--border)] bg-[var(--surface-2)] p-3">
           <button onClick={onCancel} className="nb-btn px-4 py-2 text-sm">
             {cancelLabel}
           </button>
