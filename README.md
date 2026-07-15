@@ -35,7 +35,7 @@ interface.
 **Transactions & categories**
 - Add income *or* expenses with a clean type toggle, an optional **account** tag
   and a free-text **note**
-- **Your own categories** — every account starts with a sensible default set you
+- **Your own categories** - every account starts with a sensible default set you
   can fully manage: create, rename, recolour, or delete. Pick a category (or
   create one on the spot) right from the add/edit form. Renames and deletes
   cascade safely (a deleted category's transactions fall back to *Uncategorized*).
@@ -47,13 +47,13 @@ interface.
 
 ---
 
-## Design — Liquid Glass
+## Design - Liquid Glass
 
 The whole UI is a frosted-glass design system: translucent surfaces with real
 backdrop blur + saturation, hairline light-catching borders, soft layered
 shadows, and a gently drifting aurora backdrop. It is fully theme-aware (bright
 and airy in light mode, deep and luminous in dark) and responsive down to small
-phones — wide content scrolls inside its own container so the page never scrolls
+phones - wide content scrolls inside its own container so the page never scrolls
 sideways.
 
 ---
