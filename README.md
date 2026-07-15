@@ -188,7 +188,7 @@ the `CORS_ORIGINS` env var (comma-separated).
 | **Backend** | Python, FastAPI, Uvicorn (gzip + input validation), stdlib-only auth (PBKDF2 + HMAC-signed tokens, brute-force throttle) |
 | **Database** | SQLite (`sqlite3`, no ORM), per-user scoping |
 | **Frontend** | Next.js 16 (App Router), React 19, TypeScript |
-| **Styling** | Tailwind CSS v4 — custom **liquid-glass** design system |
+| **Styling** | Tailwind CSS v4 — custom flat/solid design system |
 | **UI** | Framer Motion, Recharts, lucide-react, next-themes, react-day-picker |
 
 No heavy ML or crypto dependencies — authentication is plain standard-library

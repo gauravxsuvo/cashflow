@@ -23,7 +23,7 @@ interface CashflowChartProps {
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const INCOME_FILL = "#10b981";
-const EXPENSE_FILL = "#6a5cff";
+const EXPENSE_FILL = "#635bff";
 
 export default function CashflowChart({ transactions }: CashflowChartProps) {
   const { currency } = useSettings();

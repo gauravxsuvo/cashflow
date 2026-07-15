@@ -79,7 +79,7 @@ export default function SummaryCard({ totals, topCategory, expenseTrend }: Summa
         value={formatCurrency(income, currency)}
       />
       <StatCard
-        accent="#6a5cff"
+        accent="#635bff"
         icon={<ArrowDownRight className="h-6 w-6" />}
         label="Expenses"
         value={formatCurrency(expenses, currency)}

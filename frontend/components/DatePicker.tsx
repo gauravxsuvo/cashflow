@@ -7,33 +7,38 @@ import { format, parse, isValid } from "date-fns";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePopover } from "@/hooks/usePopover";
 
-// Full Tailwind classNames — no react-day-picker default CSS needed
+// Full Tailwind classNames — no react-day-picker default CSS needed.
+// Every column is a fixed 36px, so the weekday header row and the day grid
+// always line up, and the whole calendar stays a predictable 252px wide
+// (fits comfortably inside modals on the smallest phones).
 const DPC = {
-  root: "w-64 select-none",
+  root: "w-[252px] select-none",
   months: "flex flex-col",
-  month: "w-full",
-  month_caption: "relative flex h-10 items-center justify-center mb-2",
-  caption_label: "text-sm font-extrabold text-[var(--foreground)]",
-  nav: "absolute inset-x-0 flex items-center justify-between pointer-events-none",
+  month: "relative w-full",
+  month_caption: "relative flex h-9 items-center justify-center mb-1",
+  caption_label: "text-sm font-bold text-[var(--foreground)]",
+  nav: "pointer-events-none absolute inset-x-0 top-0 flex h-9 items-center justify-between",
   button_previous:
-    "pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--hairline)] " +
-    "text-[var(--foreground)] transition-colors hover:bg-[var(--surface-2)] focus:outline-none",
+    "pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg " +
+    "text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] " +
+    "focus:outline-none disabled:opacity-30 disabled:hover:bg-transparent",
   button_next:
-    "pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--hairline)] " +
-    "text-[var(--foreground)] transition-colors hover:bg-[var(--surface-2)] focus:outline-none",
-  month_grid: "w-full border-collapse",
+    "pointer-events-auto flex h-8 w-8 items-center justify-center rounded-lg " +
+    "text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] " +
+    "focus:outline-none disabled:opacity-30 disabled:hover:bg-transparent",
+  month_grid: "border-collapse",
   weekdays: "",
-  weekday: "text-xs font-bold text-[var(--nb-muted)] pb-2 text-center w-9",
+  weekday: "h-8 w-9 text-center align-middle text-[0.7rem] font-semibold text-[var(--muted)]",
   week: "",
-  day: "text-center p-0.5",
+  day: "p-0 text-center align-middle",
   day_button:
-    "h-9 w-9 rounded-md text-sm font-bold text-[var(--foreground)] transition-all duration-100 " +
-    "focus:outline-none hover:bg-[var(--nb-surface-2)]",
+    "mx-auto flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium " +
+    "text-[var(--foreground)] transition-colors focus:outline-none hover:bg-[var(--surface-2)]",
   selected:
-    "!bg-gradient-to-br !from-[var(--primary)] !to-[var(--primary-2)] !text-white shadow-[0_6px_16px_-6px_var(--ring)]",
-  today: "font-extrabold ring-2 ring-inset ring-[var(--primary)]",
-  outside: "opacity-30",
-  disabled: "opacity-25 cursor-not-allowed",
+    "!bg-[var(--primary)] !text-white hover:!bg-[var(--primary)] shadow-[0_4px_12px_-4px_var(--ring)]",
+  today: "font-bold text-[var(--primary)]",
+  outside: "opacity-40",
+  disabled: "opacity-30 cursor-not-allowed hover:!bg-transparent",
   hidden: "invisible",
 } as const;
 
@@ -100,7 +105,7 @@ export default function DatePicker({ value, onChange, required }: DatePickerProp
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: -4 }}
             transition={{ duration: 0.14, ease: "easeOut" }}
-            className={`nb-card absolute left-0 z-50 p-4 text-[var(--foreground)] ${
+            className={`nb-card absolute left-0 z-50 p-3 text-[var(--foreground)] shadow-[var(--shadow-lg)] ${
               placement === "top" ? "bottom-full mb-2" : "top-full mt-2"
             }`}
           >

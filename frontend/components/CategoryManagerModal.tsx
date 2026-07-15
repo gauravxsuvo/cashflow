@@ -185,7 +185,7 @@ export default function CategoryManagerModal({ onClose, onMutated }: CategoryMan
         exit={{ opacity: 0, scale: 0.96, y: 12 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[22px] border-b border-[var(--hairline)] bg-[var(--nb-surface)] px-5 py-4 backdrop-blur-xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-[16px] border-b border-[var(--hairline)] bg-[var(--card)] px-5 py-4">
           <div className="flex items-center gap-2">
             <Tag className="h-5 w-5 text-[var(--primary)]" />
             <h2 className="text-lg font-bold tracking-tight text-[var(--foreground)]">Categories</h2>

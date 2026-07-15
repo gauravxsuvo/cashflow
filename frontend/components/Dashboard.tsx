@@ -335,7 +335,7 @@ export default function Dashboard() {
 
   // Mobile top bar (lg:hidden)
   const mobileHeader = (
-    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-[var(--hairline)] bg-[var(--nb-surface)] px-4 py-3 backdrop-blur-xl lg:hidden">
+    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-[var(--hairline)] bg-[var(--card)] px-4 py-3 lg:hidden">
       <div className="flex items-center gap-2">
         <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" className="nb-icon-btn h-10 w-10">
           <Menu className="h-5 w-5" />
@@ -413,9 +413,9 @@ export default function Dashboard() {
                   {periodTransactions.length} transaction{periodTransactions.length === 1 ? "" : "s"} in view
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
                 <PeriodFilter value={period} onChange={setPeriod} />
-                <button onClick={() => setModalTarget(null)} className="nb-btn nb-btn-primary hidden h-10 px-4 text-sm sm:inline-flex">
+                <button onClick={() => setModalTarget(null)} className="nb-btn nb-btn-primary hidden h-10 shrink-0 px-4 text-sm sm:inline-flex">
                   <Plus className="h-4 w-4" />
                   Add
                 </button>
@@ -511,14 +511,14 @@ export default function Dashboard() {
                     </select>
                   )}
 
-                  <div className="relative">
+                  <div className="relative min-w-[9rem] flex-1 sm:flex-none">
                     <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
                     <input
                       ref={searchRef}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search…  ( / )"
-                      className="nb-input h-9 w-36 py-1.5 pl-8 text-sm sm:w-44"
+                      className="nb-input h-9 w-full py-1.5 pl-8 text-sm sm:w-44"
                     />
                   </div>
                 </div>

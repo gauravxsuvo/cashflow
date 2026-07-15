@@ -18,13 +18,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Cashflow — Personal Finance, Beautifully Clear",
   description:
-    "A private ledger for your income, expenses and budgets — with automatic categorisation, in liquid glass.",
+    "A private ledger for your income, expenses and budgets — with your own categories, accounts and monthly budgets.",
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#e9ecf6" },
-    { media: "(prefers-color-scheme: dark)", color: "#07070c" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f5f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0b10" },
   ],
   width: "device-width",
   initialScale: 1,
