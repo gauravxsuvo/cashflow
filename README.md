@@ -3,7 +3,7 @@
 A private, personal finance ledger that helps you see **where your money goes**.
 Create an account, log income and expenses, organise them with your own
 categories and accounts, watch your net balance and savings rate, and set
-monthly budgets per category — all wrapped in an Apple-style **liquid-glass**
+monthly budgets per category - all wrapped in an Apple-style **liquid-glass**
 interface.
 
 ---
@@ -22,10 +22,10 @@ interface.
   month-over-month spending trend
 - A **time-period filter** (this month, last month, last 3 months, this year,
   all time) that scopes the whole dashboard
-- **Where your money goes** — an interactive donut of spending by category
+- **Where your money goes** - an interactive donut of spending by category
   (click a slice or legend chip to filter the table)
 - **Income vs. expenses** bar chart, month by month
-- **Accounts** panel — net balance per wallet (Cash, Checking, Savings, …)
+- **Accounts** panel - net balance per wallet (Cash, Checking, Savings, …)
 
 **Budgets**
 - Set a **monthly limit** for any spending category
